@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { minikitConfig } from "../minikit.config";
 import styles from "./page.module.css";
 
+import { Metadata } from 'next';
+const app_id = process.env.NEXT_BASE_APP_ID;
+
+export const metadata: Metadata = {
+  ...(app_id && {
+    other: {
+      "base:app_id": app_id,
+    },
+  }),
+};
 interface AuthResponse {
   success: boolean;
   user?: {
