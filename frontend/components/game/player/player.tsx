@@ -90,22 +90,10 @@ export default function GamePlayers({
   useEffect(() => {
   if (!game || game.status === "FINISHED" || !me) return;
 
-  // Count players who are still "active" (not bankrupt)
-  const activePlayers = game.players.filter((player) => {
-    // Has money?
-    if ((player.balance ?? 0) > 0) return true;
-
-    // Or owns at least one unmortgaged property?
-    return game_properties.some(
-      (gp) =>
-        gp.address?.toLowerCase() === player.address?.toLowerCase() &&
-        gp.mortgaged !== true
-    );
-  });
 
   // Only one active player left → they win!
-  if (activePlayers.length === 1) {
-  const theWinner = activePlayers[0];
+  if (game.players.length === 1) {
+  const theWinner = game.players[0];
 
   if (winner?.user_id === theWinner.user_id) return; // prevent double trigger
 
