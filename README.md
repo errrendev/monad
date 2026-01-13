@@ -1,10 +1,10 @@
-# Tycoon - Blockchain Monopoly on Base
+# Tycoon - Monopoly on Mantle
 
-Welcome to **Tycoon**, a fully on-chain version of the classic Monopoly board game that brings the timeless property trading experience to the blockchain. This project is deployed on the **Base network**, combining the strategic depth of traditional Monopoly with blockchain technology's transparency and ownership.
+Welcome to **Tycoon**, a fully on-chain version of the classic Monopoly board game that brings the timeless property trading experience to the blockchain. This project is deployed on the **Base, Celo and Mantle network**, combining the strategic depth of traditional Monopoly with blockchain technology's transparency and ownership.
 
 ## What is Tycoon?
 
-Tycoon recreates the Monopoly experience where players roll dice, buy properties, collect rent, and compete to bankrupt their opponents. But here's where it gets interesting: everything happens on-chain. Your game stakes, rewards, and collectible perks are all managed through smart contracts deployed on Base.
+Tycoon recreates the Monopoly experience where players roll dice, buy properties, collect rent, and compete to bankrupt their opponents. But here's where it gets interesting: everything happens on-chain. Your game stakes, rewards, and collectible perks are all managed through smart contracts deployed on Mantle.
 
 Whether you're playing against friends in a private room or challenging AI opponents for practice, every move is verifiable, every payout is automatic, and every reward you earn is genuinely yours.
 
@@ -12,16 +12,16 @@ Whether you're playing against friends in a private room or challenging AI oppon
 
 This project is split into three main components that work together to deliver a seamless gaming experience:
 
-### Smart Contracts (Solidity on Base)
+### Smart Contracts (Solidity on Mantle)
 
-The heart of Tycoon lives on the Base blockchain through two primary smart contracts:
+The heart of Tycoon lives on the Mantle blockchain through two primary smart contracts:
 
 #### 1. Tycoon.sol - The Main Game Engine
 
 This is where all the game logic happens. The contract handles:
 
 - **Player Registration**: When you join Tycoon for the first time, you register with a username and receive a welcome bonus of 2 TYC tokens (the platform's reward token) as vouchers
-- **Game Creation**: Start public or private games with 2-8 players, set your own stake amounts (minimum determined by contract), and customize starting balances
+- **Game Creation**: Start public or private games with 2-8 players, set your own stake amounts (minimum and maximum determined by contract), and customize starting balances
 - **AI Games**: Practice against AI opponents without risking real stakes
 - **Game Flow**: Join games, track player positions, manage in-game balances, and handle player eliminations
 - **Rewards Distribution**: When games end, the contract automatically distributes USDC prizes:
@@ -55,7 +55,7 @@ A straightforward ERC-721 contract for minting commemorative NFTs. Players can r
 
 Both contracts leverage OpenZeppelin's battle-tested implementations and include security features like reentrancy protection and pausability.
 
-**Network**: All contracts are deployed on **Base**, benefiting from low transaction fees and fast confirmations.
+**Network**: All contracts are deployed on **Mantle**, benefiting from low transaction fees and fast confirmations.
 
 ### Backend (Node.js + Express + Socket.io)
 
@@ -84,7 +84,7 @@ The frontend delivers a polished, responsive gaming experience built with modern
 - **Wallet Integration**: 
   - Reown AppKit (formerly WalletConnect) for wallet connections
   - Wagmi and Viem for Web3 interactions
-  - Support for all Base-compatible wallets
+  - Support for all Mantle-compatible wallets
 - **Real-time Updates**: Socket.io client keeps the game board synchronized across all players
 - **UI Components**: 
   - Interactive game board
@@ -93,7 +93,7 @@ The frontend delivers a polished, responsive gaming experience built with modern
   - Player dashboards with statistics
   - Mobile-responsive design with dedicated mobile components
 
-The frontend communicates with both the backend API (for game state) and directly with the Base network (for transactions and blockchain reads).
+The frontend communicates with both the backend API (for game state) and directly with the Mantle network (for transactions and blockchain reads).
 
 ## Getting Started
 
@@ -103,17 +103,18 @@ Before running Tycoon locally, make sure you have:
 
 - Node.js (v18 or higher)
 - MySQL database
-- A Base-compatible wallet (MetaMask, Rainbow, etc.)
-- Some Base ETH for gas fees
+- A Mantle-compatible wallet (MetaMask, Rainbow, etc.)
+- Some Mantle ETH for gas fees
 
 ### Contract Deployment Info
 
-The contracts are already deployed on Base:
+The contracts are already deployed on Mantle:
 
-- **Tycoon Game Contract**: `0xc6c2ccc0cA40d700DE2e5696f2a5e71dd838A1c4`
-- **TYC Token (ERC-20)**: `0x8A867F46f1A0e8bA1AF573E83B26F86Aa23e07D3`
+- **Tycoon Game Contract**: `0x7346750357c5b39d42D6beaaE918349E3D5c5381`
+- **Tycoon Reward Contract**: `0x005034825205c3B571a5451F8C50662ee7d6D3F0`
+- **TYC Token (ERC-20)**: `0x721457558D9B7643e15189C036C3f704d3b878f8`
 
-You can verify these contracts on [BaseScan](https://basescan.org).
+You can verify these contracts on [MantleScan](http://mantlescan.xyz/address/).
 
 ### Setting Up the Backend
 
@@ -161,7 +162,7 @@ npm install
 3. Create a `.env.local` file with required environment variables:
    - API URL pointing to your backend
    - Reown/WalletConnect project ID
-   - Base network RPC URLs
+   - Mantle network RPC URLs
 
 4. Start the development server:
 ```bash
@@ -243,7 +244,7 @@ forge test
 
 Tycoon is actively under development. The core game mechanics, contract system, and basic UI are functional. We're continuously improving the player experience, adding new collectible types, and refining the game balance.
 
-The smart contracts are deployed and operational on Base. The frontend and backend are being polished for a smoother user experience.
+The smart contracts are deployed and operational on Mantle. The frontend and backend are being polished for a smoother user experience.
 
 ## Contributing
 
@@ -258,9 +259,9 @@ Fork the repository, make your changes, and submit a PR!
 
 ## Project Links
 
-- **Live Demo**: [https://base-monopoly.vercel.app](https://base-monopoly.vercel.app)
-- **Base Contract Address**: `0xc6c2ccc0cA40d700DE2e5696f2a5e71dd838A1c4`
-- **BaseScan**: View contract on [BaseScan](https://basescan.org/address/0xc6c2ccc0cA40d700DE2e5696f2a5e71dd838A1c4)
+- **Live Demo**: [https://mantle-lda60qdb2-ajidokwus-projects.vercel.app/]
+- **Mantle Contract Address**: `0xc6c2ccc0cA40d700DE2e5696f2a5e71dd838A1c4`
+- **MantleScan**: View contract on [mantle](https://mantlescan.xyz/address/0x7346750357c5b39d42D6beaaE918349E3D5c5381)
 
 ## Developer
 
@@ -274,4 +275,4 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 **Roll the dice. Build your empire. Own your wins.**
 
-*Powered by Base blockchain* ⚡
+*Powered by Mantle blockchain* ⚡
