@@ -8,7 +8,7 @@ if (!projectId) {
   throw new Error('Project ID is not defined')
 }
 
-export const networks = [mantle, mantleSepoliaTestnet]
+export const networks = [mantleSepoliaTestnet]
 
 //Set up the Wagmi Adapter (Config)
 export const wagmiAdapter = new WagmiAdapter({
