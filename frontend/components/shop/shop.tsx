@@ -77,7 +77,7 @@ export default function GameShop() {
   const tycTokenAddress = TYC_TOKEN_ADDRESS[chainId as keyof typeof TYC_TOKEN_ADDRESS] as Address | undefined;
   const usdcTokenAddress = USDC_TOKEN_ADDRESS[chainId as keyof typeof USDC_TOKEN_ADDRESS] as Address | undefined;
 
-  const [useUsdc, setUseUsdc] = useState(false);
+  const [useUsdc, setUseUsdc] = useState(true);
   const [isVoucherPanelOpen, setIsVoucherPanelOpen] = useState(false);
 
   const { data: tycAllowance } = useReadContract({
@@ -214,7 +214,7 @@ const { data: usdcAllowance } = useReadContract({
           perk,
           strength: Number(strength),
           tycPrice: formatUnits(tycPrice, 18),
-          usdcPrice: formatUnits(usdcPrice, 6),
+          usdcPrice: formatUnits(usdcPrice, 18),
           stock: Number(stock),
           ...meta,
         };
@@ -301,7 +301,7 @@ const { data: usdcAllowance } = useReadContract({
 
     const price = BigInt(
       isPayingWithUsdc
-        ? Math.round(Number(item.usdcPrice) * 1e6)
+        ? Math.round(Number(item.usdcPrice) * 1e18)
         : Math.round(Number(item.tycPrice) * 1e18)
     );
 
