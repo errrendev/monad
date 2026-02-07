@@ -40,7 +40,7 @@ const HeroSectionMobile: React.FC = () => {
   const { data: gameCode } = usePreviousGameCode(address);
 
   const { data: contractGame } = useGetGameByCode(gameCode);
-  
+
 
   const [user, setUser] = useState<UserType | null>(null);
 
@@ -62,7 +62,7 @@ const HeroSectionMobile: React.FC = () => {
 
     const fetchUser = async () => {
       try {
-        const res = await apiClient.get<ApiResponse>(`/users/by-address/${address}?chain=Base`);
+        const res = await apiClient.get<ApiResponse>(`/users/by-address/${address}?chain=Monad Testnet`);
 
         if (!isActive) return;
 
@@ -136,7 +136,7 @@ const HeroSectionMobile: React.FC = () => {
         const res = await apiClient.post<ApiResponse>("/users", {
           username: finalUsername,
           address,
-          chain: "Base",
+          chain: "Monad Testnet",
         });
 
         if (!res?.success) throw new Error("Failed to save user on backend");
@@ -180,15 +180,15 @@ const HeroSectionMobile: React.FC = () => {
     }
   };
 
-const handleContinuePrevious = () => {
-  if (!gameCode) return;
+  const handleContinuePrevious = () => {
+    if (!gameCode) return;
 
-  if (contractGame?.ai) {
-    router.push(`/ai-play?gameCode=${gameCode}`);
-  } else {
-    router.push(`/game-play?gameCode=${gameCode}`);
-  }
-};
+    if (contractGame?.ai) {
+      router.push(`/ai-play?gameCode=${gameCode}`);
+    } else {
+      router.push(`/game-play?gameCode=${gameCode}`);
+    }
+  };
 
   if (isConnecting) {
     return (

@@ -65,7 +65,7 @@ const HeroSection: React.FC = () => {
     const fetchUser = async () => {
       try {
         const res = await apiClient.get<ApiResponse>(
-          `/users/by-address/${address}?chain=Base`
+          `/users/by-address/${address}?chain=Monad Testnet`
         );
 
         if (!isActive) return;
@@ -148,7 +148,7 @@ const HeroSection: React.FC = () => {
         const res = await apiClient.post<ApiResponse>("/users", {
           username: finalUsername,
           address,
-          chain: "Base",
+          chain: "Monad Testnet",
         });
 
         if (!res?.success) throw new Error("Failed to save user on backend");
@@ -197,15 +197,15 @@ const HeroSection: React.FC = () => {
     }
   };
 
-const handleContinuePrevious = () => {
-  if (!gameCode) return;
+  const handleContinuePrevious = () => {
+    if (!gameCode) return;
 
-  if (contractGame?.ai) {
-    router.push(`/ai-play?gameCode=${gameCode}`);
-  } else {
-    router.push(`/game-play?gameCode=${gameCode}`);
-  }
-};
+    if (contractGame?.ai) {
+      router.push(`/ai-play?gameCode=${gameCode}`);
+    } else {
+      router.push(`/game-play?gameCode=${gameCode}`);
+    }
+  };
 
   if (isConnecting) {
     return (

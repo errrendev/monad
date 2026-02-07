@@ -34,7 +34,7 @@ import {
   useCreateGame,
   useApprove,
 } from "@/context/ContractProvider";
-import { TYCOON_CONTRACT_ADDRESSES, USDC_TOKEN_ADDRESS, MINIPAY_CHAIN_IDS } from "@/constants/contracts";
+import { TYCOON_CONTRACT_ADDRESSES, USDC_TOKEN_ADDRESS, MONAD_CHAIN_IDS } from "@/constants/contracts";
 import { Address, parseUnits } from "viem";
 
 interface GameCreateResponse {
@@ -58,7 +58,7 @@ export default function CreateGameMobile() {
   const { data: username } = useGetUsername(address);
   const { data: isUserRegistered, isLoading: isRegisteredLoading } = useIsRegistered(address);
 
-  const isMiniPay = MINIPAY_CHAIN_IDS.includes(wagmiChainId);
+  const isMiniPay = MONAD_CHAIN_IDS.includes(wagmiChainId);
   const chainName = caipNetwork?.name?.toLowerCase().replace(" ", "") || `chain-${wagmiChainId}` || "unknown";
 
   const [isFreeGame, setIsFreeGame] = useState(false);
@@ -360,7 +360,7 @@ export default function CreateGameMobile() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[2,3,4,5,6,7,8].map(n => (
+              {[2, 3, 4, 5, 6, 7, 8].map(n => (
                 <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
               ))}
             </SelectContent>
@@ -404,11 +404,10 @@ export default function CreateGameMobile() {
                   <button
                     key={amt}
                     onClick={() => handleStakeSelect(amt)}
-                    className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                      settings.stake === amt
+                    className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${settings.stake === amt
                         ? "bg-gradient-to-br from-yellow-400 to-amber-500 text-black shadow-lg"
                         : "bg-black/65 border border-gray-600 text-gray-300"
-                    }`}
+                      }`}
                   >
                     {amt}
                   </button>
@@ -512,10 +511,10 @@ export default function CreateGameMobile() {
             {isStarting || approvePending || approveConfirming
               ? "PROCESSING..."
               : isCreatePending
-              ? "CREATING..."
-              : isFreeGame
-              ? "START FREE GAME"
-              : "CREATE GAME"}
+                ? "CREATING..."
+                : isFreeGame
+                  ? "START FREE GAME"
+                  : "CREATE GAME"}
           </button>
         </div>
       </div>

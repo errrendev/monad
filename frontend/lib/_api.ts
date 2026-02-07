@@ -1,5 +1,5 @@
 // API Configuration and Base Client
-const API_BASE_URL = "https://base-monopoly-production.up.railway.app/api";
+const API_BASE_URL = "http://localhost:3002/api";
 class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) {
     super(message);

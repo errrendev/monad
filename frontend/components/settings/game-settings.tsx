@@ -34,7 +34,7 @@ import {
   useCreateGame,
   useApprove,
 } from "@/context/ContractProvider";
-import { TYCOON_CONTRACT_ADDRESSES, USDC_TOKEN_ADDRESS, MINIPAY_CHAIN_IDS } from "@/constants/contracts";
+import { TYCOON_CONTRACT_ADDRESSES, USDC_TOKEN_ADDRESS, MONAD_CHAIN_IDS } from "@/constants/contracts";
 import { Address, parseUnits } from "viem";
 
 interface GameCreateResponse {
@@ -57,7 +57,7 @@ export default function GameSettings() {
   const { data: username } = useGetUsername(address);
   const { data: isUserRegistered, isLoading: isRegisteredLoading } = useIsRegistered(address);
 
-  const isMiniPay = MINIPAY_CHAIN_IDS.includes(wagmiChainId);
+  const isMiniPay = MONAD_CHAIN_IDS.includes(wagmiChainId);
   const chainName = caipNetwork?.name?.toLowerCase().replace(" ", "") || `chain-${wagmiChainId}` || "unknown";
 
   const [isFreeGame, setIsFreeGame] = useState(false);
@@ -289,7 +289,7 @@ export default function GameSettings() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[2,3,4,5,6,7,8].map(n => (
+                  {[2, 3, 4, 5, 6, 7, 8].map(n => (
                     <SelectItem key={n} value={n.toString()}>{n} Players</SelectItem>
                   ))}
                 </SelectContent>
@@ -359,11 +359,10 @@ export default function GameSettings() {
                     <button
                       key={amount}
                       onClick={() => handleStakeSelect(amount)}
-                      className={`py-4 rounded-xl font-bold transition-all hover:scale-105 ${
-                        settings.stake === amount
+                      className={`py-4 rounded-xl font-bold transition-all hover:scale-105 ${settings.stake === amount
                           ? "bg-gradient-to-br from-yellow-400 to-amber-500 text-black shadow-lg"
                           : "bg-black/60 border border-gray-600 text-gray-300"
-                      }`}
+                        }`}
                     >
                       {amount} USDC
                     </button>
@@ -476,10 +475,10 @@ export default function GameSettings() {
               {approvePending || approveConfirming
                 ? "APPROVING..."
                 : isCreatePending
-                ? "CREATING..."
-                : isFreeGame
-                ? "CREATE FREE GAME"
-                : "CREATE GAME"}
+                  ? "CREATING..."
+                  : isFreeGame
+                    ? "CREATE FREE GAME"
+                    : "CREATE GAME"}
             </span>
           </button>
         </div>

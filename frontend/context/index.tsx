@@ -3,7 +3,7 @@
 import { wagmiAdapter, projectId } from '@/config'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createAppKit } from '@reown/appkit/react'
-import { mantle, mantleSepoliaTestnet} from '@reown/appkit/networks'
+import { monadTestnet } from '@/config'
 import React, { type ReactNode } from 'react'
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
 
@@ -18,7 +18,7 @@ if (!projectId) {
 const metadata = {
   name: 'appkit-example',
   description: 'AppKit Example',
-  url: 'https://appkitexampleapp.com', // origin must match your domain & subdomain
+  url: 'http://localhost:3000', // origin must match your domain & subdomain
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 }
 
@@ -26,8 +26,8 @@ const metadata = {
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [mantleSepoliaTestnet, mantle],
-  defaultNetwork: mantleSepoliaTestnet,
+  networks: [monadTestnet],
+  defaultNetwork: monadTestnet,
   metadata: metadata,
   features: {
     analytics: true // Optional - defaults to your Cloud configuration

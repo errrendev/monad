@@ -27,7 +27,7 @@ import {
   useGetUsername,
   useCreateAIGame,
 } from "@/context/ContractProvider";
-import { TYCOON_CONTRACT_ADDRESSES, MINIPAY_CHAIN_IDS } from "@/constants/contracts";
+import { TYCOON_CONTRACT_ADDRESSES, MONAD_CHAIN_IDS } from "@/constants/contracts";
 import { Address } from "viem";
 
 interface GameCreateResponse {
@@ -57,7 +57,7 @@ export default function PlayWithAI() {
   const { data: username } = useGetUsername(address);
   const { data: isUserRegistered, isLoading: isRegisteredLoading } = useIsRegistered(address);
 
-  const isMiniPay = !!caipNetwork?.id && MINIPAY_CHAIN_IDS.includes(Number(caipNetwork.id));
+  const isMiniPay = !!caipNetwork?.id && MONAD_CHAIN_IDS.includes(Number(caipNetwork.id));
   const chainName = caipNetwork?.name?.toLowerCase().replace(" ", "") || `chain-${caipNetwork?.id ?? "unknown"}`;
 
   const [settings, setSettings] = useState({

@@ -8,7 +8,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = "https://base-monopoly-production.up.railway.app/api";
+const API_BASE_URL = "http://localhost:3002/api";
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
