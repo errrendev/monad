@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import herobg from "@/public/heroBg.png";
 import Image from "next/image";
-import { Dices, Gamepad2 } from "lucide-react";
+import { Dices, Gamepad2, Trophy, Play } from "lucide-react";
 import { TypeAnimation } from "react-type-animation";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -400,6 +400,55 @@ const HeroSectionMobile: React.FC = () => {
                   Challenge AI!
                 </span>
               </button>
+
+              {/* Leaderboard and Live Games buttons */}
+              <div className="grid grid-cols-2 gap-4 w-full">
+                {/* Leaderboard */}
+                <button
+                  onClick={() => router.push("/leaderboard")}
+                  className="relative h-12 transition-transform active:scale-[0.97]"
+                >
+                  <svg
+                    className="absolute inset-0 w-full h-full"
+                    viewBox="0 0 227 48"
+                    fill="none"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M6 1H221C225.373 1 227.996 5.85486 225.601 9.5127L207.167 37.5127C206.151 39.0646 204.42 40 202.565 40H6C2.96244 40 0.5 37.5376 0.5 34.5V6.5C0.5 3.46243 2.96243 1 6 1Z"
+                      fill="#0E1415"
+                      stroke="#004B4F"
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[#00F0FF] text-xs font-medium gap-1.5">
+                    <Trophy size={16} />
+                    Leaderboard
+                  </span>
+                </button>
+
+                {/* Live Games */}
+                <button
+                  onClick={() => router.push("/live-games")}
+                  className="relative h-12 transition-transform active:scale-[0.97]"
+                >
+                  <svg
+                    className="absolute inset-0 w-full h-full"
+                    viewBox="0 0 140 48"
+                    fill="none"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M6 1H134C138.373 1 140.996 5.85486 138.601 9.5127L120.167 37.5127C119.151 39.0646 117.42 40 115.565 40H6C2.96244 40 0.5 37.5376 0.5 34.5V6.5C0.5 3.46243 2.96243 1 6 1Z"
+                      fill="#0E1415"
+                      stroke="#004B4F"
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[#0FF0FC] text-xs font-medium gap-1.5">
+                    <Play size={16} />
+                    Live
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 

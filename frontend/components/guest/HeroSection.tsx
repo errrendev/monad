@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import herobg from "@/public/heroBg.png";
 import Image from "next/image";
-import { Dices, Gamepad2 } from "lucide-react";
+import { Dices, Gamepad2, Trophy, Play } from "lucide-react";
 import { TypeAnimation } from "react-type-animation";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -467,6 +467,60 @@ const HeroSection: React.FC = () => {
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-[#010F10] uppercase text-[16px] -tracking-[2%] font-orbitron font-[700] z-2">
                   Challenge AI!
+                </span>
+              </button>
+
+              {/* Leaderboard */}
+              <button
+                onClick={() => router.push("/leaderboard")}
+                className="relative group w-[227px] h-[40px] bg-transparent border-none p-0 overflow-hidden cursor-pointer"
+              >
+                <svg
+                  width="227"
+                  height="40"
+                  viewBox="0 0 227 40"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="absolute top-0 left-0 w-full h-full transform scale-x-[-1] scale-y-[-1]"
+                >
+                  <path
+                    d="M6 1H221C225.373 1 227.996 5.85486 225.601 9.5127L207.167 37.5127C206.151 39.0646 204.42 40 202.565 40H6C2.96244 40 0.5 37.5376 0.5 34.5V6.5C0.5 3.46243 2.96243 1 6 1Z"
+                    fill="#0E1415"
+                    stroke="#003B3E"
+                    strokeWidth={1}
+                    className="group-hover:stroke-[#00F0FF] transition-all duration-300"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[#00F0FF] capitalize text-[12px] font-dmSans font-medium z-2">
+                  <Trophy className="mr-1.5 w-[16px] h-[16px]" />
+                  Leaderboard
+                </span>
+              </button>
+
+              {/* Live Games */}
+              <button
+                onClick={() => router.push("/live-games")}
+                className="relative group w-[140px] h-[40px] bg-transparent border-none p-0 overflow-hidden cursor-pointer"
+              >
+                <svg
+                  width="140"
+                  height="40"
+                  viewBox="0 0 140 40"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="absolute top-0 left-0 w-full h-full"
+                >
+                  <path
+                    d="M6 1H134C138.373 1 140.996 5.85486 138.601 9.5127L120.167 37.5127C119.151 39.0646 117.42 40 115.565 40H6C2.96244 40 0.5 37.5376 0.5 34.5V6.5C0.5 3.46243 2.96243 1 6 1Z"
+                    fill="#0E1415"
+                    stroke="#003B3E"
+                    strokeWidth={1}
+                    className="group-hover:stroke-[#00F0FF] transition-all duration-300"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[#0FF0FC] capitalize text-[12px] font-dmSans font-medium z-2">
+                  <Play className="mr-1.5 w-[16px] h-[16px]" />
+                  Live
                 </span>
               </button>
             </div>

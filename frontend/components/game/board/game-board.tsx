@@ -25,7 +25,7 @@ import { ApiResponse } from "@/types/api";
 import { BankruptcyModal } from "../modals/bankruptcy";
 import { CardModal } from "../modals/cards";
 import CollectibleInventoryBar from "@/components/collectibles/collectibles-invetory";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExitGame, useGetGameByCode, useTransferPropertyOwnership } from "@/context/ContractProvider";
 import { PropertyActionModal } from "../modals/property-action";
@@ -48,11 +48,13 @@ const Board = ({
   properties,
   game_properties,
   me,
+  isSpectator = false,
 }: {
   game: Game;
   properties: Property[];
   game_properties: GameProperty[];
   me: Player | null;
+  isSpectator?: boolean;
 }) => {
   const [players, setPlayers] = useState<Player[]>(game?.players ?? []);
   const [roll, setRoll] = useState<{ die1: number; die2: number; total: number } | null>(null);
@@ -95,7 +97,34 @@ const Board = ({
   const currentPlayerId = game.next_player_id ?? -1;
   const currentPlayer = players.find((p) => p.user_id === currentPlayerId);
 
-  const isMyTurn = me?.user_id === currentPlayerId;
+  const isMyTurn = me?.user_id === currentPlayerId && !isSpectator;
+
+  // Spectator mode banner
+  if (isSpectator) {
+    return (
+      <div className="relative w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 text-yellow-200">
+              <Eye className="w-4 h-4" />
+              <span className="text-sm font-medium">Spectator Mode - Watching Game #{game.code}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="text-center text-white">
+            <Eye className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
+            <h2 className="text-2xl font-bold mb-2">Spectator Mode</h2>
+            <p className="text-gray-300 mb-4">You are watching this game as a spectator</p>
+            <p className="text-sm text-gray-400">Game Code: {game.code}</p>
+            <p className="text-sm text-gray-400">Players: {game.players?.length || 0}</p>
+            <p className="text-sm text-gray-400">Status: {game.status}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const playerCanRoll = Boolean(
     isMyTurn && currentPlayer && (currentPlayer.balance ?? 0) > 0

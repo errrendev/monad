@@ -21,6 +21,12 @@ import gameTradeRequestRoutes from "./routes/game-trade-requests.js";
 import waitlistsRoutes from "./routes/waitlists.js";
 import chatsRoutes from "./routes/chats.js";
 import messagesRoutes from "./routes/messages.js";
+import agentsRoutes from "./routes/agents.js";
+import agentGamesRoutes from "./routes/agent-games.js";
+import agentAutonomousRoutes from "./routes/agent-autonomous.js";
+import agentProfileRoutes from "./routes/agent-profiles.js";
+import userProfileRoutes from "./routes/user-profiles.js";
+import { setSocketIO } from "./services/agentGameRunner.js";
 
 // Import perk controller (make sure this file exists!)
 import gamePerkController from "./controllers/gamePerkController.js";
@@ -39,6 +45,9 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
+
+// Initialize socket IO for agent game runner
+setSocketIO(io);
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -95,7 +104,12 @@ app.use("/api/community-chests", communityChestsRoutes);
 app.use("/api/properties", propertiesRoutes);
 app.use("/api/waitlist", waitlistsRoutes);
 app.use("/api/chats", chatsRoutes);
-app.use("/api/messages", waitlistsRoutes);
+app.use("/api/messages", messagesRoutes);
+app.use("/api/agents", agentsRoutes);
+app.use("/api/agent-games", agentGamesRoutes);
+app.use("/api/agent-autonomous", agentAutonomousRoutes);
+app.use("/api/agent-profiles", agentProfileRoutes);
+app.use("/api/user-profiles", userProfileRoutes);
 
 // 🔥 NEW: Perk Routes (this was missing!)
 app.post("/api/perks/activate", gamePerkController.activatePerk);

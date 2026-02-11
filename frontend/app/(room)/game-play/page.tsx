@@ -17,6 +17,7 @@ import MobileGameLayout from "@/components/game/board/mobile/board-mobile";
 export default function GamePlayPage() {
   const searchParams = useSearchParams();
   const [gameCode, setGameCode] = useState<string>("");
+  const [isSpectator, setIsSpectator] = useState<boolean>(false);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -24,7 +25,11 @@ export default function GamePlayPage() {
 
   useEffect(() => {
     const code = searchParams.get("gameCode") || localStorage.getItem("gameCode");
-    if (code && code.length === 6) setGameCode(code);
+    const spectator = searchParams.get("spectator") === "true";
+    if (code && code.length === 6) {
+      setGameCode(code);
+      setIsSpectator(spectator);
+    }
   }, [searchParams]);
 
   const {
@@ -95,7 +100,7 @@ export default function GamePlayPage() {
   if (gameLoading) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center text-lg font-medium text-white">
-        Loading game...
+        {isSpectator ? 'Loading game for viewing...' : 'Loading game...'}
       </div>
     );
   }
@@ -103,7 +108,7 @@ export default function GamePlayPage() {
   if (gameError) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center text-lg font-medium text-white">
-        Failed to load game
+        Failed to load game {isSpectator && '- Spectator mode unavailable'}
       </div>
     );
   }
@@ -175,6 +180,7 @@ export default function GamePlayPage() {
           properties={properties}
           game_properties={game_properties}
           me={me}
+          isSpectator={isSpectator}
         />
       </div>
       <GameRoom gameId={game?.code?.toString() ?? ""} />
