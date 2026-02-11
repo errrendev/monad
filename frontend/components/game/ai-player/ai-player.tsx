@@ -14,6 +14,7 @@ import { TradeSection } from "./trade-section";
 import { PropertyActionModal } from "../modals/property-action";
 import { AiResponsePopup } from "../modals/ai-response";
 import { VictoryModal } from "../modals/victory";
+import { SpectatorVictoryModal } from "../modals/spectator-victory";
 import { TradeModal } from "../modals/trade";
 import ClaimPropertyModal from "../dev";
 import { useGameTrades } from "@/hooks/useGameTrades";
@@ -69,6 +70,8 @@ export default function GamePlayers({
 
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [showPlayerList, setShowPlayerList] = useState(true);
+  const [viewingPlayer, setViewingPlayer] = useState<Player | null>(null);
+  const [showVictoryModal, setShowVictoryModal] = useState(false);
 
   const { data: contractGame } = useGetGameByCode(game.code);
 
@@ -114,6 +117,17 @@ export default function GamePlayers({
     setOfferProperties([]);
     setRequestProperties([]);
   };
+
+  // Show victory modal when a winner is detected (for spectators)
+  useEffect(() => {
+    if (winner && winner.user_id) {
+      // Delay slightly to ensure all animations settle
+      const timer = setTimeout(() => {
+        setShowVictoryModal(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [winner]);
 
   const toggleSelect = (
     id: number,
@@ -695,6 +709,8 @@ export default function GamePlayers({
                       startTrade={startTrade}
                       isNext={isNext}
                       compact={true}
+                      onPlayerSelect={setViewingPlayer}
+                      selectedPlayerIdProp={viewingPlayer?.user_id}
                     />
                   </div>
                 </motion.div>
@@ -702,33 +718,42 @@ export default function GamePlayers({
             </AnimatePresence>
           </section>
 
-          {/* My Empire Section */}
-          {me && (
-            <>
-              <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-purple-500/30 shadow-xl shadow-purple-900/40">
-                <MyEmpire
-                  showEmpire={showEmpire}
-                  toggleEmpire={toggleEmpire}
-                  my_properties={my_properties}
-                  properties={properties}
-                  game_properties={game_properties}
-                  setSelectedProperty={setSelectedProperty}
-                />
-              </section>
+          {/* My Empire / Spectator View Section */}
+          {(me || viewingPlayer) && (
+            <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-purple-500/30 shadow-xl shadow-purple-900/40">
+              <MyEmpire
+                showEmpire={showEmpire || !!viewingPlayer}
+                toggleEmpire={viewingPlayer ? () => setViewingPlayer(null) : toggleEmpire}
+                my_properties={
+                  viewingPlayer
+                    ? game_properties
+                      .filter((gp) => gp.address?.toLowerCase() === viewingPlayer.address?.toLowerCase())
+                      .map((gp) => properties.find((p) => p.id === gp.property_id)!)
+                      .filter(Boolean)
+                    : my_properties
+                }
+                properties={properties}
+                game_properties={game_properties}
+                setSelectedProperty={setSelectedProperty}
+                readOnly={!!viewingPlayer && viewingPlayer.user_id !== me?.user_id}
+                playerName={viewingPlayer?.username}
+              />
+            </section>
+          )}
 
-              {/* Active Trades Section */}
-              <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-pink-500/30 shadow-xl shadow-pink-900/40">
-                <TradeSection
-                  showTrade={showTrade}
-                  toggleTrade={toggleTrade}
-                  openTrades={openTrades}
-                  tradeRequests={tradeRequests}
-                  properties={properties}
-                  game={game}
-                  handleTradeAction={handleTradeAction}
-                />
-              </section>
-            </>
+          {/* Active Trades Section */}
+          {me && (
+            <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-pink-500/30 shadow-xl shadow-pink-900/40">
+              <TradeSection
+                showTrade={showTrade}
+                toggleTrade={toggleTrade}
+                openTrades={openTrades}
+                tradeRequests={tradeRequests}
+                properties={properties}
+                game={game}
+                handleTradeAction={handleTradeAction}
+              />
+            </section>
           )}
 
           {/* Dev Mode Button */}
@@ -806,6 +831,12 @@ export default function GamePlayers({
           claiming={endGamePending}
         />
 
+        <SpectatorVictoryModal
+          winner={winner}
+          isOpen={showVictoryModal}
+          onClose={() => setShowVictoryModal(false)}
+        />
+
         <TradeModal
           open={tradeModal.open}
           title={`Trade with ${tradeModal.target?.username || "Player"}`}
@@ -866,6 +897,6 @@ export default function GamePlayers({
           onTransfer={handlePropertyTransfer}
         />
       </AnimatePresence>
-    </aside>
+    </aside >
   );
 }

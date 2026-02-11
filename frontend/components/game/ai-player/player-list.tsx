@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Game, Player } from "@/types/game";
@@ -11,7 +9,9 @@ interface PlayerListProps {
   sortedPlayers: Player[];
   isNext: boolean;
   startTrade: (player: Player) => void;
-  compact?: boolean; // New optional prop for even tighter mode (when collapsed)
+  compact?: boolean;
+  onPlayerSelect?: (player: Player | null) => void;
+  selectedPlayerIdProp?: number | null;
 }
 
 const getBalanceColor = (balance: number): string => {
@@ -28,9 +28,14 @@ const PlayerList: React.FC<PlayerListProps> = ({
   isNext,
   startTrade,
   compact = false,
+  onPlayerSelect,
+  selectedPlayerIdProp,
 }) => {
   const { address: connectedAddress } = useAccount();
-  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [internalSelectedId, setInternalSelectedId] = useState<number | null>(null);
+
+  // Use prop if available, otherwise internal state
+  const selectedPlayerId = selectedPlayerIdProp !== undefined ? selectedPlayerIdProp : internalSelectedId;
 
   const myPlayer = sortedPlayers.find(
     (p) => p.address?.toLowerCase() === connectedAddress?.toLowerCase()
@@ -51,15 +56,23 @@ const PlayerList: React.FC<PlayerListProps> = ({
   ];
 
   const handlePlayerTap = (player: Player) => {
+    if (onPlayerSelect) {
+      if (selectedPlayerId === player.user_id) {
+        onPlayerSelect(null);
+      } else {
+        onPlayerSelect(player);
+      }
+      return;
+    }
+
     if (compact) {
-      // In compact mode, tap directly starts trade if possible
       const canTrade = isNext && !player.in_jail && player !== myPlayer;
       if (canTrade) {
         startTrade(player);
       }
       return;
     }
-    setSelectedPlayerId((prev) => (prev === player.user_id ? null : player.user_id));
+    setInternalSelectedId((prev) => (prev === player.user_id ? null : player.user_id));
   };
 
   return (
@@ -92,10 +105,9 @@ const PlayerList: React.FC<PlayerListProps> = ({
                 : "border-purple-600/50 bg-purple-900/20"
               }
               ${p.in_jail ? "opacity-60" : ""}
-              ${isSelected || (compact && canTrade) ? "ring-2 ring-pink-500/70" : ""}
+              ${isSelected ? "ring-2 ring-cyan-400 bg-cyan-900/30" : (compact && canTrade) ? "ring-2 ring-pink-500/70" : ""}
             `}
           >
-            {/* Pulsing background for current turn */}
             {isTurn && (
               <div className="absolute inset-0 bg-cyan-400/10 animate-pulse pointer-events-none rounded-xl" />
             )}
@@ -139,9 +151,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
               ${p.balance.toLocaleString()}
             </div>
 
-            {/* Trade button - only in non-compact mode or on selection */}
             <AnimatePresence>
-              {(isSelected || (compact && canTrade)) && !compact && (
+              {(isSelected || (compact && canTrade)) && !compact && !onPlayerSelect && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -153,7 +164,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       startTrade(p);
-                      setSelectedPlayerId(null);
+                      setInternalSelectedId(null);
                     }}
                     className="
                       w-full py-2 text-sm font-bold rounded-lg

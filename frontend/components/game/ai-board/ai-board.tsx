@@ -660,8 +660,41 @@ const AiBoard = ({
     }
   };
 
+  // Win Condition: Check if only 1 player remains
+  useEffect(() => {
+    if (!game || game.status !== "RUNNING") return;
+
+    // Filter active players (not bankrupt/removed)
+    // Note: If backend removes players from DB, game.players will shrink.
+    if (game.players && game.players.length === 1) {
+      const winner = game.players[0];
+      // Only set winner if not already set
+      setEndGameCandidate((prev) =>
+        prev.winner?.user_id === winner.user_id
+          ? prev
+          : { winner, position: winner.position, balance: BigInt(winner.balance) }
+      );
+      toast.success(`${winner.username} WINS THE GAME! 🏆`);
+    }
+  }, [game]);
+
   const handleAiStrategy = async () => {
     if (!currentPlayer || !isAITurn || strategyRanThisTurn) return;
+
+    // Bankruptcy Check - simplified version
+    if (currentPlayer.balance < 0) {
+      showToast(`${currentPlayer.username} is BANKRUPT! 💸`, "error");
+      try {
+        await apiClient.post(`/game-players/remove/${currentPlayer.user_id}`, {
+          game_id: game.id
+        });
+        showToast(`${currentPlayer.username} has been eliminated.`, "default");
+        // Game refresh will trigger win condition check above
+      } catch (e) {
+        console.error("Failed to remove bankrupt player", e);
+      }
+      return;
+    }
 
     showToast(`${currentPlayer.username} is thinking... 🧠`, "default");
 

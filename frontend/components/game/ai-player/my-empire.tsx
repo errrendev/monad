@@ -10,6 +10,8 @@ interface MyEmpireProps {
   properties: Property[];
   game_properties: any[];
   setSelectedProperty: (prop: Property | null) => void;
+  readOnly?: boolean;
+  playerName?: string;
 }
 
 export const MyEmpire: React.FC<MyEmpireProps> = ({
@@ -19,14 +21,17 @@ export const MyEmpire: React.FC<MyEmpireProps> = ({
   properties,
   game_properties,
   setSelectedProperty,
+  readOnly = false,
+  playerName,
 }) => {
+  const title = playerName ? `${playerName}'S EMPIRE` : "MY EMPIRE";
   return (
     <div className="border-t-4 border-purple-600 pt-4">
       <button
         onClick={toggleEmpire}
         className="w-full text-xl font-bold text-purple-300 flex justify-between items-center"
       >
-        <span>MY EMPIRE</span>
+        <span>{title}</span>
         <motion.span
           animate={{ rotate: showEmpire ? 180 : 0 }}
           transition={{ duration: 0.25 }}
@@ -56,7 +61,8 @@ export const MyEmpire: React.FC<MyEmpireProps> = ({
                     prop={prop}
                     properties={properties}
                     game_properties={game_properties}
-                    onClick={() => setSelectedProperty(prop)}
+                    onClick={readOnly ? undefined : () => setSelectedProperty(prop)}
+                    readOnly={readOnly}
                   />
                 </motion.div>
               ))

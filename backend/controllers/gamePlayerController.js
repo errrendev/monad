@@ -176,7 +176,7 @@ const payRent = async (
     if (PROPERTY_TYPES.CHANCE.includes(property.id)) {
       await handleCard("chances", "chance");
     } else if (PROPERTY_TYPES.COMMUNITY_CHEST.includes(property.id)) {
-      await handleCard("community_chests", "community chest");
+      await handleCard("community_chests", "community_chest");
     } else if (PROPERTY_TYPES.TAX.includes(property.id)) {
       const rentAmount = Number(property.price);
       rent = { player: -rentAmount, owner: 0, players: 0 };
@@ -262,10 +262,10 @@ const payRent = async (
             : 0;
         rent = { player: -rentAmount, owner: rentAmount, players: 0 };
         comment = `paid ${rentAmount} rent to ${owner.username} for ${development === 0
-            ? "site only"
-            : development === 5
-              ? "hotel"
-              : `${development} house${development > 1 ? "s" : ""}`
+          ? "site only"
+          : development === 5
+            ? "hotel"
+            : `${development} house${development > 1 ? "s" : ""}`
           }`;
       }
     }

@@ -8,6 +8,7 @@ interface PropertyCardProps {
   game_properties: any[];
   properties: Property[];
   onClick?: () => void;
+  readOnly?: boolean;
 }
 
 export const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -15,6 +16,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   game_properties,
   properties,
   onClick,
+  readOnly,
 }) => {
   return (
     <motion.div
