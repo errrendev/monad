@@ -71,6 +71,7 @@ export default function PlayWithAI() {
     evenBuild: true,
     randomPlayOrder: true,
     duration: 60, // minutes
+    spectateMode: false, // NEW: Spectate Mode
   });
 
   const contractAddress = TYCOON_CONTRACT_ADDRESSES[caipNetwork?.id as keyof typeof TYCOON_CONTRACT_ADDRESSES] as Address | undefined;
@@ -81,7 +82,7 @@ export default function PlayWithAI() {
   const { write: createAiGame, isPending: isCreatePending } = useCreateAIGame(
     username || "",
     "PRIVATE",
-    settings.symbol,
+    settings.spectateMode ? "spectator" : settings.symbol,
     settings.aiCount,           // ← number of AI opponents
     gameCode,
     BigInt(settings.startingCash)
@@ -99,31 +100,37 @@ export default function PlayWithAI() {
     }
 
     const toastId = toast.loading(`Summoning ${settings.aiCount} AI opponent${settings.aiCount > 1 ? "s" : ""}...`);
+    let dbGameId: string | number | undefined;
 
     try {
-      toast.update(toastId, { render: "Creating AI game on-chain..." });
-      const onChainGameId = await createAiGame();
-      if (!onChainGameId) throw new Error("Failed to create game on-chain");
-
-      toast.update(toastId, { render: "Saving game to server..." });
-
-      let dbGameId: string | number | undefined;
       try {
+        toast.update(toastId, { render: "Creating AI game on-chain..." });
+        const onChainGameId = await createAiGame();
+        if (!onChainGameId) throw new Error("Failed to create game on-chain");
+
+        toast.update(toastId, { render: "Saving game to server..." });
+
+
+        // Spectate Mode: User is NOT a player, just watching AIs
+        // If NOT spectator: User + AIs
+        const totalPlayers = settings.spectateMode ? settings.aiCount : settings.aiCount + 1;
+
         const saveRes: GameCreateResponse = await apiClient.post("/games", {
           id: onChainGameId.toString(),
           code: gameCode,
           mode: "PRIVATE",
-          address: address,
-          symbol: settings.symbol,
+          address: address, // Creator address
+          symbol: settings.spectateMode ? "spectator" : settings.symbol, // Spectator doesn't need a valid piece
           number_of_players: totalPlayers,
           ai_opponents: settings.aiCount,
           ai_difficulty: settings.aiDifficulty,
           starting_cash: settings.startingCash,
           is_ai: true,
+          is_spectator: settings.spectateMode, // NEW FLAG
           is_minipay: isMiniPay,
-          chain: "Monad Testnet", // Ensure exact match with backend user record
+          chain: "Monad Testnet",
           duration: settings.duration,
-          username: username, // Pass username for auto-creation
+          username: username,
           settings: {
             auction: settings.auction,
             rent_in_prison: settings.rentInPrison,
@@ -233,8 +240,27 @@ export default function PlayWithAI() {
         <div className="grid lg:grid-cols-3 gap-8 mb-10">
           {/* Column 1 */}
           <div className="space-y-6">
+            {/* Spectate Mode Toggle */}
+            <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-2xl p-6 border border-gray-600/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FaUser className="w-7 h-7 text-gray-400" />
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-300">Spectate Mode</h3>
+                    <p className="text-xs text-gray-500">Watch AIs battle each other</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.spectateMode}
+                  onCheckedChange={(v) => {
+                    setSettings((p) => ({ ...p, spectateMode: v }));
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Your Piece */}
-            <div className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 rounded-2xl p-6 border border-cyan-500/30">
+            <div className={`bg-gradient-to-br from-cyan-900/40 to-blue-900/40 rounded-2xl p-6 border border-cyan-500/30 ${settings.spectateMode ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="flex items-center gap-3 mb-4">
                 <FaUser className="w-7 h-7 text-cyan-400" />
                 <h3 className="text-xl font-bold text-cyan-300">Your Piece</h3>

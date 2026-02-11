@@ -10,12 +10,12 @@ export interface GameContextProps {
 export interface BoardDataSquare {
   id: number;
   type:
-    | "corner"
-    | "property"
-    | "luxury_tax"
-    | "income_tax"
-    | "chance"
-    | "community_chest";
+  | "corner"
+  | "property"
+  | "luxury_tax"
+  | "income_tax"
+  | "chance"
+  | "community_chest";
   name: string;
   price: number;
   rent_site_only: number;
@@ -40,6 +40,7 @@ export interface Game {
   code: string;
   mode: "PUBLIC" | "PRIVATE";
   creator_id: number;
+  address?: string;
   status: "WAITING" | "RUNNING" | "FINISHED" | "CANCELLED";
   winner_id: number | null;
   number_of_players: number;

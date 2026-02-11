@@ -129,7 +129,7 @@ const payRent = async (
         },
       };
 
-      rent = rentConfig[cardType] || {};
+      rent = rentConfig[cardType] || { player: 0, owner: 0, players: 0 };
       if ("position" in rent) position = rent.position;
 
       if (extra?.rule) {
@@ -231,9 +231,8 @@ const payRent = async (
 
         const rentAmount = RAILWAY_RENT[owned] || 0;
         rent = { player: -rentAmount, owner: rentAmount, players: 0 };
-        comment = `paid ${rentAmount} to ${
-          owner.username
-        } for ${owned} railway${owned > 1 ? "s" : ""}`;
+        comment = `paid ${rentAmount} to ${owner.username
+          } for ${owned} railway${owned > 1 ? "s" : ""}`;
       } else if (PROPERTY_TYPES.UTILITY.includes(property.id)) {
         const owned = await trx("game_properties")
           .where({ game_id: game.id, player_id: game_property.player_id })
@@ -245,9 +244,8 @@ const payRent = async (
         const rentAmount =
           Number(rolled || 0) * (UTILITY_MULTIPLIER[owned] || 0);
         rent = { player: -rentAmount, owner: rentAmount, players: 0 };
-        comment = `paid ${rentAmount} to ${
-          owner.username
-        } for ${owned} utility${owned > 1 ? "ies" : "y"}`;
+        comment = `paid ${rentAmount} to ${owner.username
+          } for ${owned} utility${owned > 1 ? "ies" : "y"}`;
       } else {
         const development = Number(game_property?.development || 0);
         const rentFields = [
@@ -263,13 +261,12 @@ const payRent = async (
             ? Number(rentFields[development] || 0)
             : 0;
         rent = { player: -rentAmount, owner: rentAmount, players: 0 };
-        comment = `paid ${rentAmount} rent to ${owner.username} for ${
-          development === 0
+        comment = `paid ${rentAmount} rent to ${owner.username} for ${development === 0
             ? "site only"
             : development === 5
-            ? "hotel"
-            : `${development} house${development > 1 ? "s" : ""}`
-        }`;
+              ? "hotel"
+              : `${development} house${development > 1 ? "s" : ""}`
+          }`;
       }
     }
 
@@ -303,8 +300,7 @@ const payRent = async (
           createHistory(
             game_property.player_id,
             rent.owner,
-            `${_owner ? _owner?.username : "Owner"} ${
-              rent.owner > 0 ? "received" : "paid"
+            `${_owner ? _owner?.username : "Owner"} ${rent.owner > 0 ? "received" : "paid"
             } ${Number(rent.owner)}`
           )
         );
@@ -554,7 +550,7 @@ const gamePlayerController = {
       res.status(200).json({ success: false, message: error.message });
     }
   },
-  
+
   async update(req, res) {
     try {
       const player = await GamePlayer.update(req.params.id, req.body);
@@ -708,8 +704,8 @@ const gamePlayerController = {
       // Check if player can leave jail
       const canLeaveJail = game_player.in_jail
         ? Number(game_player.in_jail_rolls || 0) >= 2 || // 3rd roll means 2 previous rolls
-          Number(rolled || 0) >= 12 ||
-          Boolean(is_double)
+        Number(rolled || 0) >= 12 ||
+        Boolean(is_double)
         : true; // Not in jail, can move freely
 
       if (canLeaveJail) {
@@ -1002,69 +998,69 @@ const gamePlayerController = {
   },
 
   async remov(req, res) {
-  const trx = await db.transaction();
+    const trx = await db.transaction();
 
-  try {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
 
-    if (!id || isNaN(Number(id))) {
+      if (!id || isNaN(Number(id))) {
+        await trx.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Invalid player ID"
+        });
+      }
+
+      // 1. Find player (with lock)
+      const player = await trx("game_players")
+        .where({ id })
+        .first();
+
+      if (!player) {
+        await trx.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Player not found"
+        });
+      }
+
+
+      // Return properties to bank (critical!)
+      await trx("game_properties")
+        .where({
+          game_id: player.game_id,
+          player_id: player.id
+        })
+        .update({
+          player_id: null,
+          mortgaged: false,
+          development: 0,
+          updated_at: new Date()
+        });
+
+      // Delete player
+      await trx("game_players")
+        .where({ id })
+        .delete();
+
+      await trx.commit();
+
+      return res.json({
+        success: true,
+        message: "AI player removed successfully",
+        playerId: id
+      });
+
+    } catch (error) {
       await trx.rollback();
-      return res.status(400).json({
+      console.error("remove player error:", error);
+
+      return res.status(500).json({
         success: false,
-        message: "Invalid player ID"
+        message: error.message || "Failed to remove player"
       });
     }
-
-    // 1. Find player (with lock)
-    const player = await trx("game_players")
-      .where({ id })
-      .first();
-
-    if (!player) {
-      await trx.rollback();
-      return res.status(404).json({
-        success: false,
-        message: "Player not found"
-      });
-    }
-
-
-    // Return properties to bank (critical!)
-    await trx("game_properties")
-      .where({
-        game_id: player.game_id,
-        player_id: player.id
-      })
-      .update({
-        player_id: null,
-        mortgaged: false,
-        development: 0,
-        updated_at: new Date()
-      });
-
-    // Delete player
-    await trx("game_players")
-      .where({ id })
-      .delete();
-
-    await trx.commit();
-
-    return res.json({
-      success: true,
-      message: "AI player removed successfully",
-      playerId: id
-    });
-
-  } catch (error) {
-    await trx.rollback();
-    console.error("remove player error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Failed to remove player"
-    });
   }
-}
 };
 
 export default gamePlayerController;

@@ -173,6 +173,8 @@ export default function GamePlayPage() {
               properties={properties}
               game_properties={game_properties}
               me={me}
+              isCreator={game.address?.toLowerCase() === address?.toLowerCase()}
+              isSpectator={!me}
             />
           ) : (
             <GamePlayersMobile
@@ -191,11 +193,10 @@ export default function GamePlayPage() {
         <nav className="fixed bottom-0 left-0 right-0 h-20 pb-safe bg-[#010F10]/95 backdrop-blur-xl border-t border-[#003B3E] flex items-center justify-around z-50 shadow-2xl">
           <button
             onClick={() => setActiveTab("board")}
-            className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${
-              activeTab === "board"
-                ? "text-[#00F0FF] scale-110"
-                : "text-gray-500"
-            }`}
+            className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${activeTab === "board"
+              ? "text-[#00F0FF] scale-110"
+              : "text-gray-500"
+              }`}
           >
             <LayoutGrid size={26} />
             <span className="text-xs mt-1 font-orbitron">Board</span>
@@ -203,11 +204,10 @@ export default function GamePlayPage() {
 
           <button
             onClick={() => setActiveTab("players")}
-            className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${
-              activeTab === "players"
-                ? "text-[#00F0FF] scale-110"
-                : "text-gray-500"
-            }`}
+            className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${activeTab === "players"
+              ? "text-[#00F0FF] scale-110"
+              : "text-gray-500"
+              }`}
           >
             <Users size={26} />
             <span className="text-xs mt-1 font-orbitron">Players</span>
@@ -239,6 +239,8 @@ export default function GamePlayPage() {
           properties={properties}
           game_properties={game_properties}
           me={me}
+          isCreator={game.address?.toLowerCase() === address?.toLowerCase()}
+          isSpectator={!me}
         />
       </div>
 

@@ -70,25 +70,25 @@ export default function GamePlayers({
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [showPlayerList, setShowPlayerList] = useState(true);
 
- const { data: contractGame } = useGetGameByCode(game.code);
- 
- // Extract the on-chain game ID (it's a bigint now)
- const onChainGameId = contractGame?.id;
- 
- // Hook for ending an AI game and claiming rewards
- const {
-   write: endGame,
-   isPending: endGamePending,
-   isSuccess: endGameSuccess,
-   error: endGameError,
-   txHash: endGameTxHash,
-   reset: endGameReset,
- } = useEndAIGameAndClaim(
-   onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
-   endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
-   BigInt(endGameCandidate.balance),       // finalBalance: bigint
-   !!endGameCandidate.winner               // isWin: boolean
- );
+  const { data: contractGame } = useGetGameByCode(game.code);
+
+  // Extract the on-chain game ID (it's a bigint now)
+  const onChainGameId = contractGame?.id;
+
+  // Hook for ending an AI game and claiming rewards
+  const {
+    write: endGame,
+    isPending: endGamePending,
+    isSuccess: endGameSuccess,
+    error: endGameError,
+    txHash: endGameTxHash,
+    reset: endGameReset,
+  } = useEndAIGameAndClaim(
+    onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
+    endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
+    BigInt(endGameCandidate.balance),       // finalBalance: bigint
+    !!endGameCandidate.winner               // isWin: boolean
+  );
 
   const toggleEmpire = useCallback(() => setShowEmpire((p) => !p), []);
   const toggleTrade = useCallback(() => setShowTrade((p) => !p), []);
@@ -469,122 +469,122 @@ export default function GamePlayers({
     }
   };
 
-useEffect(() => {
-  if (!isAITurn || !currentPlayer || currentPlayer.balance >= 0) return;
+  useEffect(() => {
+    if (!isAITurn || !currentPlayer || currentPlayer.balance >= 0) return;
 
-  const handleAiLiquidationAndPossibleBankruptcy = async () => {
-    toast(`${currentPlayer.username} cannot pay — attempting to raise funds...`);
+    const handleAiLiquidationAndPossibleBankruptcy = async () => {
+      toast(`${currentPlayer.username} cannot pay — attempting to raise funds...`);
 
-    const raisedFromHouses = await aiSellHouses(Infinity);
-    const raisedFromMortgages = await aiMortgageProperties(Infinity);
-    const totalRaised = raisedFromHouses + raisedFromMortgages;
+      const raisedFromHouses = await aiSellHouses(Infinity);
+      const raisedFromMortgages = await aiMortgageProperties(Infinity);
+      const totalRaised = raisedFromHouses + raisedFromMortgages;
 
-    // Refresh player data after liquidation attempts
-    // (balance might have changed)
-    // Note: In a real app you'd refetch game state here, but we'll assume balance is updated via polling
+      // Refresh player data after liquidation attempts
+      // (balance might have changed)
+      // Note: In a real app you'd refetch game state here, but we'll assume balance is updated via polling
 
-    if (currentPlayer.balance >= 0) {
-      toast.success(`${currentPlayer.username} raised $${totalRaised} and survived! 💪`);
-      return;
-    }
+      if (currentPlayer.balance >= 0) {
+        toast.success(`${currentPlayer.username} raised $${totalRaised} and survived! 💪`);
+        return;
+      }
 
-    toast(`${currentPlayer.username} still cannot pay — bankrupt!`);
+      toast(`${currentPlayer.username} still cannot pay — bankrupt!`);
 
-    try {
-      // === NEW: Explicitly end the AI's turn BEFORE removal ===
       try {
+        // === NEW: Explicitly end the AI's turn BEFORE removal ===
+        try {
+          await apiClient.post("/game-players/end-turn", {
+            user_id: currentPlayer.user_id,
+            game_id: game.id,
+          });
+          // No toast needed — keeps flow clean
+        } catch (err) {
+          console.warn("Failed to end AI turn before bankruptcy", err);
+          // Continue anyway — bankruptcy is more important
+        }
+
+        // Transfer or return properties
+        const landedGameProperty = game_properties.find(
+          gp => gp.property_id === currentPlayer.position
+        );
+
+        const creditorAddress =
+          landedGameProperty?.address && landedGameProperty.address !== "bank"
+            ? landedGameProperty.address
+            : null;
+
+        const creditorPlayer = creditorAddress
+          ? game.players.find(
+            p => p.address?.toLowerCase() === creditorAddress.toLowerCase()
+          )
+          : null;
+
+        const aiProperties = game_properties.filter(
+          gp => gp.address === currentPlayer.address
+        );
+
+        let successCount = 0;
+
+        if (creditorPlayer && !isAIPlayer(creditorPlayer)) {
+          const creditorRealPlayerId = getGamePlayerId(creditorPlayer.address);
+
+          if (!creditorRealPlayerId) {
+            toast.error(`Cannot transfer: ${creditorPlayer.username} has no valid player_id`);
+            for (const prop of aiProperties) {
+              await handleDeleteGameProperty(prop.id);
+              successCount++;
+            }
+          } else {
+            toast(`Transferring properties to ${creditorPlayer.username}...`);
+            for (const prop of aiProperties) {
+              try {
+                await handlePropertyTransfer(prop.id, creditorRealPlayerId, "");
+                successCount++;
+              } catch (err) {
+                console.error(`Transfer failed for property ${prop.id}`, err);
+              }
+            }
+            toast.success(
+              `${successCount}/${aiProperties.length} properties transferred to ${creditorPlayer.username}!`
+            );
+          }
+        } else {
+          toast(`Returning properties to bank...`);
+          for (const prop of aiProperties) {
+            try {
+              await handleDeleteGameProperty(prop.id);
+              successCount++;
+            } catch (err) {
+              console.error(`Delete failed for property ${prop.id}`, err);
+            }
+          }
+          toast.success(`${successCount}/${aiProperties.length} properties returned to bank.`);
+        }
+
+        // Now remove the AI player
         await apiClient.post("/game-players/end-turn", {
           user_id: currentPlayer.user_id,
           game_id: game.id,
         });
-        // No toast needed — keeps flow clean
-      } catch (err) {
-        console.warn("Failed to end AI turn before bankruptcy", err);
-        // Continue anyway — bankruptcy is more important
+
+        await apiClient.post("/game-players/leave", {
+          address: currentPlayer.address,
+          code: game.code,
+          reason: "bankruptcy",
+        });
+
+        toast.success(`${currentPlayer.username} has been eliminated.`, { duration: 6000 });
+      } catch (err: any) {
+        console.error("Bankruptcy handling failed:", err);
+        toast.error("AI bankruptcy process failed");
       }
+    };
 
-      // Transfer or return properties
-      const landedGameProperty = game_properties.find(
-        gp => gp.property_id === currentPlayer.position
-      );
+    handleAiLiquidationAndPossibleBankruptcy();
+  }, [isAITurn, currentPlayer?.balance, currentPlayer, game_properties, game.id, game.code, game.players]);
 
-      const creditorAddress =
-        landedGameProperty?.address && landedGameProperty.address !== "bank"
-          ? landedGameProperty.address
-          : null;
 
-      const creditorPlayer = creditorAddress
-        ? game.players.find(
-            p => p.address?.toLowerCase() === creditorAddress.toLowerCase()
-          )
-        : null;
-
-      const aiProperties = game_properties.filter(
-        gp => gp.address === currentPlayer.address
-      );
-
-      let successCount = 0;
-
-      if (creditorPlayer && !isAIPlayer(creditorPlayer)) {
-        const creditorRealPlayerId = getGamePlayerId(creditorPlayer.address);
-
-        if (!creditorRealPlayerId) {
-          toast.error(`Cannot transfer: ${creditorPlayer.username} has no valid player_id`);
-          for (const prop of aiProperties) {
-            await handleDeleteGameProperty(prop.id);
-            successCount++;
-          }
-        } else {
-          toast(`Transferring properties to ${creditorPlayer.username}...`);
-          for (const prop of aiProperties) {
-            try {
-              await handlePropertyTransfer(prop.id, creditorRealPlayerId, "");
-              successCount++;
-            } catch (err) {
-              console.error(`Transfer failed for property ${prop.id}`, err);
-            }
-          }
-          toast.success(
-            `${successCount}/${aiProperties.length} properties transferred to ${creditorPlayer.username}!`
-          );
-        }
-      } else {
-        toast(`Returning properties to bank...`);
-        for (const prop of aiProperties) {
-          try {
-            await handleDeleteGameProperty(prop.id);
-            successCount++;
-          } catch (err) {
-            console.error(`Delete failed for property ${prop.id}`, err);
-          }
-        }
-        toast.success(`${successCount}/${aiProperties.length} properties returned to bank.`);
-      }
-
-      // Now remove the AI player
-          await apiClient.post("/game-players/end-turn", {
-              user_id: currentPlayer.user_id,
-              game_id: game.id,
-            });
-
-      await apiClient.post("/game-players/leave", {
-        address: currentPlayer.address,
-        code: game.code,
-        reason: "bankruptcy",
-      });
-
-      toast.success(`${currentPlayer.username} has been eliminated.`, { duration: 6000 });
-    } catch (err: any) {
-      console.error("Bankruptcy handling failed:", err);
-      toast.error("AI bankruptcy process failed");
-    }
-  };
-
-  handleAiLiquidationAndPossibleBankruptcy();
-}, [isAITurn, currentPlayer?.balance, currentPlayer, game_properties, game.id, game.code, game.players]);
- 
-
-useEffect(() => {
+  useEffect(() => {
     if (!me) return;
 
     const aiPlayer = game.players.find(p => isAIPlayer(p) && p.user_id !== me.user_id);
@@ -630,7 +630,7 @@ useEffect(() => {
     }
   };
 
-  
+
 
   return (
     <aside className="w-80 h-full bg-gradient-to-b from-[#0a001a] via-[#15082a] to-[#1a0033] border-r-4 border-purple-600 shadow-2xl shadow-purple-900/60 flex flex-col relative overflow-hidden">
@@ -659,87 +659,91 @@ useEffect(() => {
 
       {/* Scrollable Content with Custom Scrollbar */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-custom px-5 pb-8 pt-4">
-  <div className="space-y-2">
-    {/* Player List Section */}
-      {/* Collapsible Player List Section - Slim & Efficient */}
-    <section className="backdrop-blur-md bg-white/10 rounded-2xl border border-cyan-500/40 shadow-xl shadow-cyan-900/40 overflow-hidden">
-      <button
-        onClick={() => setShowPlayerList(prev => !prev)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/10 transition-all duration-200"
-      >
-        <h3 className="text-lg font-bold text-cyan-300 tracking-wide">
-          Active Players ({sortedPlayers.length})
-        </h3>
-        <motion.div
-          animate={{ rotate: showPlayerList ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="text-cyan-300"
-        >
-          ▼
-        </motion.div>
-      </button>
+        <div className="space-y-2">
+          {/* Player List Section */}
+          {/* Collapsible Player List Section - Slim & Efficient */}
+          <section className="backdrop-blur-md bg-white/10 rounded-2xl border border-cyan-500/40 shadow-xl shadow-cyan-900/40 overflow-hidden">
+            <button
+              onClick={() => setShowPlayerList(prev => !prev)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/10 transition-all duration-200"
+            >
+              <h3 className="text-lg font-bold text-cyan-300 tracking-wide">
+                Active Players ({sortedPlayers.length})
+              </h3>
+              <motion.div
+                animate={{ rotate: showPlayerList ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-cyan-300"
+              >
+                ▼
+              </motion.div>
+            </button>
 
-      <AnimatePresence initial={false}>
-        {showPlayerList && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="px-4 pb-4"
-          >
-            <div className="space-y-2.5"> {/* Tighter spacing */}
-              <PlayerList
-                game={game}
-                sortedPlayers={sortedPlayers}
-                startTrade={startTrade}
-                isNext={isNext}
-                compact={true}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </section>
+            <AnimatePresence initial={false}>
+              {showPlayerList && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="px-4 pb-4"
+                >
+                  <div className="space-y-2.5"> {/* Tighter spacing */}
+                    <PlayerList
+                      game={game}
+                      sortedPlayers={sortedPlayers}
+                      startTrade={startTrade}
+                      isNext={isNext}
+                      compact={true}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
-    {/* My Empire Section */}
-    <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-purple-500/30 shadow-xl shadow-purple-900/40">
-      <MyEmpire
-        showEmpire={showEmpire}
-        toggleEmpire={toggleEmpire}
-        my_properties={my_properties}
-        properties={properties}
-        game_properties={game_properties}
-        setSelectedProperty={setSelectedProperty}
-      />
-    </section>
+          {/* My Empire Section */}
+          {me && (
+            <>
+              <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-purple-500/30 shadow-xl shadow-purple-900/40">
+                <MyEmpire
+                  showEmpire={showEmpire}
+                  toggleEmpire={toggleEmpire}
+                  my_properties={my_properties}
+                  properties={properties}
+                  game_properties={game_properties}
+                  setSelectedProperty={setSelectedProperty}
+                />
+              </section>
 
-    {/* Active Trades Section */}
-    <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-pink-500/30 shadow-xl shadow-pink-900/40">
-      <TradeSection
-        showTrade={showTrade}
-        toggleTrade={toggleTrade}
-        openTrades={openTrades}
-        tradeRequests={tradeRequests}
-        properties={properties}
-        game={game}
-        handleTradeAction={handleTradeAction}
-      />
-    </section>
+              {/* Active Trades Section */}
+              <section className="backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-pink-500/30 shadow-xl shadow-pink-900/40">
+                <TradeSection
+                  showTrade={showTrade}
+                  toggleTrade={toggleTrade}
+                  openTrades={openTrades}
+                  tradeRequests={tradeRequests}
+                  properties={properties}
+                  game={game}
+                  handleTradeAction={handleTradeAction}
+                />
+              </section>
+            </>
+          )}
 
-    {/* Dev Mode Button */}
-    {isDevMode && (
-      <motion.button
-        whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(168, 85, 247, 0.6)" }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setClaimModalOpen(true)}
-        className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-2xl text-white font-bold text-lg tracking-wide shadow-2xl shadow-purple-800/60 hover:shadow-pink-800/70 transition-all duration-300 border border-purple-400/50"
-      >
-        ⚙️ DEV: Claim Property
-      </motion.button>
-    )}
-  </div>
-</div>
+          {/* Dev Mode Button */}
+          {isDevMode && (
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(168, 85, 247, 0.6)" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setClaimModalOpen(true)}
+              className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-2xl text-white font-bold text-lg tracking-wide shadow-2xl shadow-purple-800/60 hover:shadow-pink-800/70 transition-all duration-300 border border-purple-400/50"
+            >
+              ⚙️ DEV: Claim Property
+            </motion.button>
+          )}
+        </div>
+      </div>
 
       {/* Custom Scrollbar Styles */}
       <style jsx>{`

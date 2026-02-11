@@ -72,23 +72,23 @@ export default function MobileGamePlayers({
   const [showTrade, setShowTrade] = useState(false);
 
   const { data: contractGame } = useGetGameByCode(game.code);
- // Extract the on-chain game ID (it's a bigint now)
- const onChainGameId = contractGame?.id;
- 
- // Hook for ending an AI game and claiming rewards
- const {
-   write: endGame,
-   isPending: endGamePending,
-   isSuccess: endGameSuccess,
-   error: endGameError,
-   txHash: endGameTxHash,
-   reset: endGameReset,
- } = useEndAIGameAndClaim(
-   onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
-   endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
-   BigInt(endGameCandidate.balance),       // finalBalance: bigint
-   !!endGameCandidate.winner               // isWin: boolean
- );
+  // Extract the on-chain game ID (it's a bigint now)
+  const onChainGameId = contractGame?.id;
+
+  // Hook for ending an AI game and claiming rewards
+  const {
+    write: endGame,
+    isPending: endGamePending,
+    isSuccess: endGameSuccess,
+    error: endGameError,
+    txHash: endGameTxHash,
+    reset: endGameReset,
+  } = useEndAIGameAndClaim(
+    onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
+    endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
+    BigInt(endGameCandidate.balance),       // finalBalance: bigint
+    !!endGameCandidate.winner               // isWin: boolean
+  );
 
   const toggleEmpire = useCallback(() => setShowEmpire((p) => !p), []);
   const toggleTrade = useCallback(() => setShowTrade((p) => !p), []);
@@ -714,66 +714,70 @@ export default function MobileGamePlayers({
           </section>
 
           {/* My Empire Section */}
-          <section className="bg-black/40 backdrop-blur-md rounded-2xl border border-cyan-500/40 shadow-2xl shadow-cyan-900/50 overflow-hidden">
-            <MyEmpire
-              showEmpire={showEmpire}
-              toggleEmpire={toggleEmpire}
-              my_properties={my_properties}
-              properties={properties}
-              game_properties={game_properties}
-              setSelectedProperty={setSelectedProperty}
-            />
-          </section>
+          {me && (
+            <section className="bg-black/40 backdrop-blur-md rounded-2xl border border-cyan-500/40 shadow-2xl shadow-cyan-900/50 overflow-hidden">
+              <MyEmpire
+                showEmpire={showEmpire}
+                toggleEmpire={toggleEmpire}
+                my_properties={my_properties}
+                properties={properties}
+                game_properties={game_properties}
+                setSelectedProperty={setSelectedProperty}
+              />
+            </section>
+          )}
 
           {/* Active Trades Section */}
-          <section className="bg-black/30 backdrop-blur-sm rounded-2xl border border-pink-500/30 shadow-xl overflow-hidden">
-            <button
-              onClick={() => setSectionOpen(prev => ({ ...prev, trades: !prev.trades }))}
-              className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-white/5 transition-colors relative"
-            >
-              <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
-                ACTIVE TRADES {totalActiveTrades > 0 && `(${totalActiveTrades})`}
-              </h3>
-              {totalActiveTrades > 0 && (
-                <div className="absolute -top-2 -right-2 w-9 h-9 bg-red-600 rounded-full flex items-center justify-center text-sm font-bold animate-pulse shadow-lg">
-                  {totalActiveTrades}
-                </div>
-              )}
-              <motion.div
-                animate={{ rotate: sectionOpen.trades ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-                className="text-pink-300"
+          {me && (
+            <section className="bg-black/30 backdrop-blur-sm rounded-2xl border border-pink-500/30 shadow-xl overflow-hidden">
+              <button
+                onClick={() => setSectionOpen(prev => ({ ...prev, trades: !prev.trades }))}
+                className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-white/5 transition-colors relative"
               >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </motion.div>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {sectionOpen.trades && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: "easeInOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-6 pb-8">
-                    <TradeSection
-                      showTrade={true}
-                      toggleTrade={toggleTrade}
-                      openTrades={openTrades}
-                      tradeRequests={tradeRequests}
-                      properties={properties}
-                      game={game}
-                      handleTradeAction={handleTradeAction}
-                    />
+                <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400">
+                  ACTIVE TRADES {totalActiveTrades > 0 && `(${totalActiveTrades})`}
+                </h3>
+                {totalActiveTrades > 0 && (
+                  <div className="absolute -top-2 -right-2 w-9 h-9 bg-red-600 rounded-full flex items-center justify-center text-sm font-bold animate-pulse shadow-lg">
+                    {totalActiveTrades}
                   </div>
+                )}
+                <motion.div
+                  animate={{ rotate: sectionOpen.trades ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-pink-300"
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </section>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {sectionOpen.trades && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-8">
+                      <TradeSection
+                        showTrade={true}
+                        toggleTrade={toggleTrade}
+                        openTrades={openTrades}
+                        tradeRequests={tradeRequests}
+                        properties={properties}
+                        game={game}
+                        handleTradeAction={handleTradeAction}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+          )}
 
         </div>
       </div>

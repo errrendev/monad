@@ -10,7 +10,11 @@ const Game = {
   },
 
   async findById(id) {
-    return db("games").where({ id }).first();
+    return db("games")
+      .join("users", "games.creator_id", "users.id")
+      .select("games.*", "users.address as address")
+      .where("games.id", id)
+      .first();
   },
 
   async findAll({ limit = 100, offset = 0 } = {}) {
@@ -37,7 +41,11 @@ const Game = {
   // -------------------------
 
   async findByCode(code) {
-    return db("games").where({ code }).first();
+    return db("games")
+      .join("users", "games.creator_id", "users.id")
+      .select("games.*", "users.address as address")
+      .where("games.code", code)
+      .first();
   },
 
   async findByWinner(userId, { limit = 50, offset = 0 } = {}) {

@@ -138,12 +138,17 @@ const AiBoard = ({
   game,
   properties,
   game_properties,
+
   me,
+  isCreator = false,
+  isSpectator = false,
 }: {
   game: Game;
   properties: Property[];
   game_properties: GameProperty[];
   me: Player | null;
+  isCreator?: boolean;
+  isSpectator?: boolean;
 }) => {
   const [players, setPlayers] = useState<Player[]>(game?.players ?? []);
   const [roll, setRoll] = useState<{ die1: number; die2: number; total: number } | null>(null);
@@ -177,8 +182,11 @@ const AiBoard = ({
   const currentPlayerId = game.next_player_id ?? -1;
   const currentPlayer = players.find((p) => p.user_id === currentPlayerId);
 
-  const isMyTurn = me?.user_id === currentPlayerId;
+  const isMyTurn = !!me && me.user_id === currentPlayerId;
   const isAITurn = isAIPlayer(currentPlayer);
+
+  // Spectator/Creator drives the AI logic
+  const isHost = isCreator;
 
   const playerCanRoll = Boolean(
     isMyTurn && currentPlayer && (currentPlayer.balance ?? 0) > 0
@@ -186,7 +194,7 @@ const AiBoard = ({
 
   const currentPlayerInJail = currentPlayer?.position === JAIL_POSITION && currentPlayer?.in_jail === true;
 
-  
+
 
   const [endGameCandidate, setEndGameCandidate] = useState<{
     winner: Player | null;
@@ -194,7 +202,7 @@ const AiBoard = ({
     balance: bigint;
   }>({ winner: null, position: 0, balance: BigInt(0) });
 
-    // ── At the top of AiBoard component, with other hooks ──
+  // ── At the top of AiBoard component, with other hooks ──
 
   const { write: transferOwnership, isPending: isCreatePending } = useTransferPropertyOwnership();
   const currentProperty = useMemo(() => {
@@ -208,26 +216,26 @@ const AiBoard = ({
     return properties.find((p) => p.id === landedPositionThisTurn.current) ?? null;
   }, [landedPositionThisTurn.current, properties]);
 
-const { data: contractGame } = useGetGameByCode(game.code);
+  const { data: contractGame } = useGetGameByCode(game.code);
 
-// Extract the on-chain game ID (it's a bigint now)
-const onChainGameId = contractGame?.id;
+  // Extract the on-chain game ID (it's a bigint now)
+  const onChainGameId = contractGame?.id;
 
-// Hook for ending an AI game and claiming rewards
-const {
-  write: endGame,
-  isPending: endGamePending,
-  isSuccess: endGameSuccess,
-  error: endGameError,
-  txHash: endGameTxHash,
-  reset: endGameReset,
-} = useEndAIGameAndClaim(
-  onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
-  endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
-  BigInt(endGameCandidate.balance),       // finalBalance: bigint
-  !!endGameCandidate.winner               // isWin: boolean
-);
-  
+  // Hook for ending an AI game and claiming rewards
+  const {
+    write: endGame,
+    isPending: endGamePending,
+    isSuccess: endGameSuccess,
+    error: endGameError,
+    txHash: endGameTxHash,
+    reset: endGameReset,
+  } = useEndAIGameAndClaim(
+    onChainGameId ?? BigInt(0),                    // gameId: bigint (use 0n as fallback if undefined)
+    endGameCandidate.position,              // finalPosition: number (uint8, 0-39)
+    BigInt(endGameCandidate.balance),       // finalBalance: bigint
+    !!endGameCandidate.winner               // isWin: boolean
+  );
+
 
   const buyScore = useMemo(() => {
     if (!isAITurn || !buyPrompted || !currentPlayer || !justLandedProperty) return null;
@@ -315,105 +323,105 @@ const {
 
 
 
-// ── Then your BUY_PROPERTY becomes: ──
-const BUY_PROPERTY = useCallback(async (isAiAction = false) => {
-  if (!currentPlayer?.position || actionLock || !justLandedProperty?.price) {
-    showToast("Cannot buy right now", "error");
-    return;
-  }
-
-  const playerBalance = currentPlayer.balance ?? 0;
-  if (playerBalance < justLandedProperty.price) {
-    showToast("Not enough money!", "error");
-    return;
-  }
-
-  const buyerUsername = me?.username;
-  
-
-  if (!buyerUsername) {
-    showToast("Cannot buy: your username is missing", "error");
-    return;
-  }
-
-  try {
-    // Show loading state
-    showToast("Sending transaction...", "default");
-
-    // 1. On-chain minimal proof (counters update) - skip if AI is involved
-    if (!isAiAction) {
-      await transferOwnership('', buyerUsername);
+  // ── Then your BUY_PROPERTY becomes: ──
+  const BUY_PROPERTY = useCallback(async (isAiAction = false) => {
+    if (!currentPlayer?.position || actionLock || !justLandedProperty?.price) {
+      showToast("Cannot buy right now", "error");
+      return;
     }
 
-    // 2. Update backend
-    await apiClient.post("/game-properties/buy", {
-      user_id: currentPlayer.user_id,
-      game_id: game.id,
-      property_id: justLandedProperty.id,
-    });
+    const playerBalance = currentPlayer.balance ?? 0;
+    if (playerBalance < justLandedProperty.price) {
+      showToast("Not enough money!", "error");
+      return;
+    }
 
-    showToast(
-      isAiAction 
-        ? `AI bought ${justLandedProperty.name}!` 
-        : `You bought ${justLandedProperty.name}!`, 
-      "success"
-    );
+    const buyerUsername = me?.username;
 
-    setBuyPrompted(false);
-    landedPositionThisTurn.current = null;
-    setTimeout(END_TURN, 800);
 
-  } catch (err: any) {
-    console.error("Buy failed:", err);
-    
-    const message = 
-      err.message?.includes("user rejected") 
-        ? "Transaction cancelled" 
-        : err.shortMessage || err.message || "Purchase failed";
+    if (!isAiAction && !buyerUsername) {
+      showToast("Cannot buy: your username is missing", "error");
+      return;
+    }
 
-    showToast(message, "error");
-  }
-}, [
-  currentPlayer, 
-  justLandedProperty, 
-  actionLock, 
-  END_TURN, 
-  showToast, 
-  game.id, 
-  me?.username,
-  transferOwnership   // ← important dependency
-]);
+    try {
+      // Show loading state
+      showToast("Sending transaction...", "default");
+
+      // 1. On-chain minimal proof (counters update) - skip if AI is involved
+      if (!isAiAction) {
+        await transferOwnership('', buyerUsername);
+      }
+
+      // 2. Update backend
+      await apiClient.post("/game-properties/buy", {
+        user_id: currentPlayer.user_id,
+        game_id: game.id,
+        property_id: justLandedProperty.id,
+      });
+
+      showToast(
+        isAiAction
+          ? `AI bought ${justLandedProperty.name}!`
+          : `You bought ${justLandedProperty.name}!`,
+        "success"
+      );
+
+      setBuyPrompted(false);
+      landedPositionThisTurn.current = null;
+      setTimeout(END_TURN, 800);
+
+    } catch (err: any) {
+      console.error("Buy failed:", err);
+
+      const message =
+        err.message?.includes("user rejected")
+          ? "Transaction cancelled"
+          : err.shortMessage || err.message || "Purchase failed";
+
+      showToast(message, "error");
+    }
+  }, [
+    currentPlayer,
+    justLandedProperty,
+    actionLock,
+    END_TURN,
+    showToast,
+    game.id,
+    me?.username,
+    transferOwnership   // ← important dependency
+  ]);
 
   const triggerLandingLogic = useCallback((newPosition: number, isSpecial = false) => {
-  // Prevent double calls / race conditions
-  if (landedPositionThisTurn.current !== null) return;
+    // Prevent double calls / race conditions
+    if (landedPositionThisTurn.current !== null) return;
 
-  landedPositionThisTurn.current = newPosition;
-  setIsSpecialMove(isSpecial);
+    landedPositionThisTurn.current = newPosition;
+    setIsSpecialMove(isSpecial);
 
-  // Force buy prompt check
-  setRoll({ die1: 0, die2: 0, total: 0 }); // fake roll just to trigger useEffect
-  setHasMovementFinished(true);
+    // Force buy prompt check
+    setRoll({ die1: 0, die2: 0, total: 0 }); // fake roll just to trigger useEffect
+    setHasMovementFinished(true);
 
-  // Optional: tiny delay for better UX
-  setTimeout(() => {
-    const square = properties.find(p => p.id === newPosition);
-    if (square?.price != null) {
-      const isOwned = game_properties.some(gp => gp.property_id === newPosition);
-      if (!isOwned && ["land", "railway", "utility"].includes(PROPERTY_ACTION(newPosition) || "")) {
-        setBuyPrompted(true);
-        toast(`Landed on ${square.name}! ${isSpecial ? "(Special Move)" : ""}`, { icon: "✨" });
+    // Optional: tiny delay for better UX
+    setTimeout(() => {
+      const square = properties.find(p => p.id === newPosition);
+      if (square?.price != null) {
+        const isOwned = game_properties.some(gp => gp.property_id === newPosition);
+        if (!isOwned && ["land", "railway", "utility"].includes(PROPERTY_ACTION(newPosition) || "")) {
+          setBuyPrompted(true);
+          toast(`Landed on ${square.name}! ${isSpecial ? "(Special Move)" : ""}`, { icon: "✨" });
+        }
       }
-    }
-  }, 300);
-}, [properties, game_properties, setBuyPrompted, setHasMovementFinished]);
+    }, 300);
+  }, [properties, game_properties, setBuyPrompted, setHasMovementFinished]);
 
-const endTurnAfterSpecialMove = useCallback(() => {
-  setBuyPrompted(false);
-  landedPositionThisTurn.current = null;
-  setIsSpecialMove(false);
-  setTimeout(END_TURN, 800);
-}, [END_TURN]);
+  const endTurnAfterSpecialMove = useCallback(() => {
+    setBuyPrompted(false);
+    landedPositionThisTurn.current = null;
+    setIsSpecialMove(false);
+    setTimeout(END_TURN, 800);
+  }, [END_TURN]);
 
   const handlePropertyTransfer = async (propertyId: number, newPlayerId: number) => {
     if (!propertyId || !newPlayerId) {
@@ -730,11 +738,12 @@ const endTurnAfterSpecialMove = useCallback(() => {
   };
 
   useEffect(() => {
+    if (!isHost) return;
     if (isAITurn && currentPlayer && !strategyRanThisTurn) {
       const timer = setTimeout(handleAiStrategy, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isAITurn, currentPlayer, strategyRanThisTurn]);
+  }, [isAITurn, currentPlayer, strategyRanThisTurn, isHost]);
 
   const ROLL_DICE = useCallback(async (forAI = false) => {
     if (isRolling || actionLock || !lockAction("ROLL")) return;
@@ -753,7 +762,16 @@ const endTurnAfterSpecialMove = useCallback(() => {
       }
 
       setRoll(value);
-      const playerId = forAI ? currentPlayerId : me!.user_id;
+      // For AI, use currentPlayerId. For human, use me.user_id (if exists)
+      const playerId = forAI ? currentPlayerId : me?.user_id;
+
+      if (!playerId) {
+        console.error("No player ID to roll for");
+        setIsRolling(false);
+        unlockAction();
+        return;
+      }
+
       const player = players.find((p) => p.user_id === playerId);
       if (!player) return;
 
@@ -827,10 +845,11 @@ const endTurnAfterSpecialMove = useCallback(() => {
   ]);
 
   useEffect(() => {
+    if (!isHost) return;
     if (!isAITurn || isRolling || actionLock || roll || rolledForPlayerId.current === currentPlayerId || !strategyRanThisTurn) return;
     const timer = setTimeout(() => ROLL_DICE(true), 1500);
     return () => clearTimeout(timer);
-  }, [isAITurn, isRolling, actionLock, roll, currentPlayerId, ROLL_DICE, strategyRanThisTurn]);
+  }, [isAITurn, isRolling, actionLock, roll, currentPlayerId, ROLL_DICE, strategyRanThisTurn, isHost]);
 
   useEffect(() => {
     if (!roll || landedPositionThisTurn.current === null || !hasMovementFinished) {
@@ -907,6 +926,7 @@ const endTurnAfterSpecialMove = useCallback(() => {
   }, [game.history]);
 
   useEffect(() => {
+    if (!isHost) return;
     if (!isAITurn || !buyPrompted || !currentPlayer || !justLandedProperty || buyScore === null) return;
 
     const timer = setTimeout(async () => {
@@ -924,7 +944,7 @@ const endTurnAfterSpecialMove = useCallback(() => {
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [isAITurn, buyPrompted, currentPlayer, justLandedProperty, buyScore, BUY_PROPERTY, END_TURN, showToast]);
+  }, [isAITurn, buyPrompted, currentPlayer, justLandedProperty, buyScore, BUY_PROPERTY, END_TURN, showToast, isHost]);
 
   useEffect(() => {
     if (actionLock || isRolling || buyPrompted || !roll) return;
@@ -1053,7 +1073,7 @@ const endTurnAfterSpecialMove = useCallback(() => {
     }
   };
 
-    // Toggle function for the sparkle button
+  // Toggle function for the sparkle button
   const togglePerksModal = () => {
     setShowPerksModal(prev => !prev);
   };
@@ -1103,64 +1123,64 @@ const endTurnAfterSpecialMove = useCallback(() => {
         </div>
       </div>
 
-         {/* Sparkle Button - Now toggles the modal */}
-            <button
-              onClick={togglePerksModal}
-              className="fixed bottom-20 left-6 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 shadow-2xl shadow-cyan-500/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+      {/* Sparkle Button - Now toggles the modal */}
+      <button
+        onClick={togglePerksModal}
+        className="fixed bottom-20 left-6 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 shadow-2xl shadow-cyan-500/50 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+      >
+        <Sparkles className="w-8 h-8 text-black" />
+      </button>
+
+      {/* Perks Overlay: Dark backdrop + Corner Perks Panel */}
+      <AnimatePresence>
+        {showPerksModal && (
+          <>
+            {/* Backdrop - covers entire screen */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPerksModal(false)}
+              className="fixed inset-0 bg-black/70 z-50"
+            />
+
+            {/* Perks Panel - ONLY in bottom-right corner, small and fixed */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-6 left-6 z-50 w-80 max-h-[80vh]"
             >
-              <Sparkles className="w-8 h-8 text-black" />
-            </button>
-      
-            {/* Perks Overlay: Dark backdrop + Corner Perks Panel */}
-            <AnimatePresence>
-              {showPerksModal && (
-                <>
-                  {/* Backdrop - covers entire screen */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+              <div >
+                <div className="p-5 border-b border-cyan-900/50 flex items-center justify-between left-6">
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    <Sparkles className="w-8 h-8 text-[#00F0FF]" />
+                    My Perks
+                  </h2>
+                  <button
                     onClick={() => setShowPerksModal(false)}
-                    className="fixed inset-0 bg-black/70 z-50"
-                  />
-      
-                  {/* Perks Panel - ONLY in bottom-right corner, small and fixed */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="fixed bottom-6 left-6 z-50 w-80 max-h-[80vh]"
+                    className="text-gray-400 hover:text-white p-1"
                   >
-                    <div >
-                      <div className="p-5 border-b border-cyan-900/50 flex items-center justify-between left-6">
-                        <h2 className="text-2xl font-bold flex items-center gap-3">
-                          <Sparkles className="w-8 h-8 text-[#00F0FF]" />
-                          My Perks
-                        </h2>
-                        <button
-                          onClick={() => setShowPerksModal(false)}
-                          className="text-gray-400 hover:text-white p-1"
-                        >
-                          <X className="w-6 h-6" />
-                        </button>
-                      </div>
-                      
-                        <CollectibleInventoryBar
-                          game={game}
-                          game_properties={game_properties}
-                          isMyTurn={isMyTurn}
-                          ROLL_DICE={ROLL_DICE}
-                          END_TURN={END_TURN}
-                          triggerSpecialLanding={triggerLandingLogic}
-                          endTurnAfterSpecial={endTurnAfterSpecialMove}
-                        />
-                      
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <CollectibleInventoryBar
+                  game={game}
+                  game_properties={game_properties}
+                  isMyTurn={isMyTurn}
+                  ROLL_DICE={ROLL_DICE}
+                  END_TURN={END_TURN}
+                  triggerSpecialLanding={triggerLandingLogic}
+                  endTurnAfterSpecial={endTurnAfterSpecialMove}
+                />
+
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <CardModal
         isOpen={showCardModal}
@@ -1207,7 +1227,7 @@ const endTurnAfterSpecialMove = useCallback(() => {
         }}
       />
 
-     {/* <CollectibleInventoryBar
+      {/* <CollectibleInventoryBar
   game={game}
   game_properties={game_properties}
   isMyTurn={isMyTurn}

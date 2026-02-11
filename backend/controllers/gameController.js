@@ -58,12 +58,18 @@ const gameController = {
       }
 
       // check if code exist
-      // create game on contract : code, mode, address, no_of_players, status, players_joined
+      // Check if creator is a spectator (not playing)
+      const is_spectator = String(req.body.is_spectator) === "true";
+
+      // If spectator, the number of players is just the AI count
+      // If playing, it's AI count + 1 (the creator)
+      // The frontend should send the correct number_of_players, but let's be safe
+
       const game = await Game.create({
         code,
         mode,
         creator_id: user.id,
-        next_player_id: user.id,
+        next_player_id: user.id, // Initial next_player, will be updated when AIs join
         number_of_players,
         status: "PENDING",
       });
@@ -85,19 +91,22 @@ const gameController = {
 
       const game_settings = await GameSetting.create(gameSettingsPayload);
 
-      const gamePlayersPayload = {
-        game_id: game.id,
-        user_id: user.id,
-        address: user.address,
-        balance: settings.starting_cash,
-        position: 0,
-        turn_order: 1,
-        symbol: symbol,
-        chance_jail_card: false,
-        community_chest_jail_card: false,
-      };
+      // Only add creator as player if NOT spectator
+      if (!is_spectator) {
+        const gamePlayersPayload = {
+          game_id: game.id,
+          user_id: user.id,
+          address: user.address,
+          balance: settings.starting_cash,
+          position: 0,
+          turn_order: 1,
+          symbol: symbol,
+          chance_jail_card: false,
+          community_chest_jail_card: false,
+        };
 
-      const add_to_game_players = await GamePlayer.create(gamePlayersPayload);
+        await GamePlayer.create(gamePlayersPayload);
+      }
 
       // -----------------------------
       // 🤖 AI Opponent Generation
@@ -138,13 +147,16 @@ const gameController = {
 
           if (botUser) {
             // Add Bot as Game Player
+            // Turn order: If spectator, start from 1. If playing, start from 2 (since creator is 1)
+            const turnOrder = is_spectator ? botNum : botNum + 1;
+
             await GamePlayer.create({
               game_id: game.id,
               user_id: botUser.id,
               address: botUser.address,
               balance: settings.starting_cash,
               position: 0,
-              turn_order: 1 + botNum, // Creator is 1
+              turn_order: turnOrder,
               symbol: botNum, // Simple symbol assignment
               chance_jail_card: false,
               community_chest_jail_card: false,
@@ -152,12 +164,27 @@ const gameController = {
           }
         }
 
-        // Check if game is now full (Creator + AIs == requested players)
-        // If so, start the game immediately
-        if (1 + aiCount >= Number(number_of_players)) {
+        // Check if game is now full.
+        // If spectator: AI Count == number_of_players
+        // If playing: 1 + AI Count == number_of_players
+        const currentPlayersCount = is_spectator ? aiCount : 1 + aiCount;
+
+        if (currentPlayersCount >= Number(number_of_players)) {
           console.log(`Game ${game.id} is full (AI). Starting...`);
+
           await Game.update(game.id, { status: "RUNNING" });
           game.status = "RUNNING"; // Update local object for response
+
+          // If spectator mode, we need to set next_player_id to the first AI
+          if (is_spectator) {
+            const firstAi = await GamePlayer.findByGameId(game.id).then(players =>
+              players.find(p => p.turn_order === 1)
+            );
+            if (firstAi) {
+              await Game.update(game.id, { next_player_id: firstAi.user_id });
+              game.next_player_id = firstAi.user_id;
+            }
+          }
         }
       }
 

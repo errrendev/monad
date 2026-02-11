@@ -111,11 +111,15 @@ const MobileGameLayout = ({
   properties,
   game_properties,
   me,
+  isCreator = false,
+  isSpectator = false,
 }: {
   game: Game;
   properties: Property[];
   game_properties: GameProperty[];
   me: Player | null;
+  isCreator?: boolean;
+  isSpectator?: boolean;
 }) => {
   const [currentGame, setCurrentGame] = useState<Game>(game);
   const [players, setPlayers] = useState<Player[]>(game?.players ?? []);
@@ -165,7 +169,7 @@ const MobileGameLayout = ({
 
   const [bellFlash, setBellFlash] = useState(false);
   const prevIncomingTradeCount = useRef(0);
-   const { write: transferOwnership, isPending: isCreatePending } = useTransferPropertyOwnership();
+  const { write: transferOwnership, isPending: isCreatePending } = useTransferPropertyOwnership();
 
   const {
     tradeRequests = [],
@@ -227,6 +231,9 @@ const MobileGameLayout = ({
   const isMyTurn = me?.user_id === currentPlayerId;
   const isAITurn = isAIPlayer(currentPlayer);
 
+  // Spectator/Creator drives the AI logic
+  const isHost = isCreator;
+
   const landedPositionThisTurn = useRef<number | null>(null);
   const turnEndInProgress = useRef(false);
   const lastToastMessage = useRef<string | null>(null);
@@ -263,8 +270,8 @@ const MobileGameLayout = ({
     const t = type === "success"
       ? toast.success(message)
       : type === "error"
-      ? toast.error(message)
-      : toast(message, { icon: "➤" });
+        ? toast.error(message)
+        : toast(message, { icon: "➤" });
 
     setTimeout(() => activeToasts.current.delete(message), 4000);
   }, []);
@@ -393,22 +400,22 @@ const MobileGameLayout = ({
       return;
     }
 
-      const buyerUsername = me?.username;
-  
+    const buyerUsername = me?.username;
 
-  if (!buyerUsername) {
-    showToast("Cannot buy: your username is missing", "error");
-    return;
-  }
+
+    if (!buyerUsername) {
+      showToast("Cannot buy: your username is missing", "error");
+      return;
+    }
 
     try {
-       // Show loading state
-    showToast("Sending transaction...", "default");
+      // Show loading state
+      showToast("Sending transaction...", "default");
 
-    // 1. On-chain minimal proof (counters update) - skip if AI is involved
-    if (isMyTurn) {
-      await transferOwnership('', buyerUsername);
-    }
+      // 1. On-chain minimal proof (counters update) - skip if AI is involved
+      if (isMyTurn) {
+        await transferOwnership('', buyerUsername);
+      }
 
       await apiClient.post("/game-properties/buy", {
         user_id: currentPlayer.user_id,
@@ -707,7 +714,7 @@ const MobileGameLayout = ({
     landedPositionThisTurn.current = null;
   }, [isAITurn, justLandedProperty, currentPlayer, currentGameProperties, properties, currentGame.id, fetchUpdatedGame, getPlayerOwnedProperties]);
 
-   const getNearCompleteOpportunities = (playerAddress: string | undefined, game_properties: GameProperty[], properties: Property[]) => {
+  const getNearCompleteOpportunities = (playerAddress: string | undefined, game_properties: GameProperty[], properties: Property[]) => {
     if (!playerAddress) return [];
 
     const owned = getPlayerOwnedProperties(playerAddress);
@@ -802,7 +809,7 @@ const MobileGameLayout = ({
     return candidates[0];
   };
 
-    const refreshGame = async () => {
+  const refreshGame = async () => {
     try {
       const res = await apiClient.get<ApiResponse>(`/games/code/${game.code}`);
       if (res?.data?.success) {
@@ -813,7 +820,7 @@ const MobileGameLayout = ({
     }
   };
 
-const handleAiStrategy = async () => {
+  const handleAiStrategy = async () => {
     if (!currentPlayer || !isAITurn || strategyRanThisTurn) return;
 
     showToast(`${currentPlayer.username} is thinking... 🧠`, "default");
@@ -891,25 +898,28 @@ const handleAiStrategy = async () => {
   };
 
   useEffect(() => {
+    if (!isHost) return;
     if (isAITurn && currentPlayer && !strategyRanThisTurn) {
       const timer = setTimeout(handleAiStrategy, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isAITurn, currentPlayer, strategyRanThisTurn, handleAiStrategy]);
+  }, [isAITurn, currentPlayer, strategyRanThisTurn, handleAiStrategy, isHost]);
 
   useEffect(() => {
+    if (!isHost) return;
     if (isAITurn && !isRolling && !roll && !actionLock && strategyRanThisTurn) {
       const timer = setTimeout(() => ROLL_DICE(true), 1500);
       return () => clearTimeout(timer);
     }
-  }, [isAITurn, isRolling, roll, actionLock, strategyRanThisTurn, ROLL_DICE]);
+  }, [isAITurn, isRolling, roll, actionLock, strategyRanThisTurn, ROLL_DICE, isHost]);
 
   useEffect(() => {
+    if (!isHost) return;
     if (isAITurn && hasMovementFinished && roll && landedPositionThisTurn.current !== null) {
       const timer = setTimeout(handleAiBuyDecision, 1200);
       return () => clearTimeout(timer);
     }
-  }, [isAITurn, hasMovementFinished, roll, landedPositionThisTurn.current, handleAiBuyDecision]);
+  }, [isAITurn, hasMovementFinished, roll, landedPositionThisTurn.current, handleAiBuyDecision, isHost]);
 
   const aiSellHouses = async (player: Player) => {
     const improved = currentGameProperties
@@ -1027,9 +1037,9 @@ const handleAiStrategy = async () => {
           landedGp?.address && landedGp.address !== "bank" ? landedGp.address : null;
         const creditor = creditorAddr
           ? players.find(
-              (p) =>
-                p.address?.toLowerCase() === creditorAddr.toLowerCase()
-            )
+            (p) =>
+              p.address?.toLowerCase() === creditorAddr.toLowerCase()
+          )
           : null;
 
         if (creditor && !isAIPlayer(creditor)) {
@@ -1049,10 +1059,10 @@ const handleAiStrategy = async () => {
           }
         }
 
-           await apiClient.post("/game-players/end-turn", {
-                user_id: currentPlayer.user_id,
-                game_id: currentGame.id,
-              });
+        await apiClient.post("/game-players/end-turn", {
+          user_id: currentPlayer.user_id,
+          game_id: currentGame.id,
+        });
 
         // Finally leave the game
         await apiClient.post("/game-players/leave", {
@@ -1187,35 +1197,35 @@ const handleAiStrategy = async () => {
     }
   };
 
-const handleMortgageToggle = async () => {
-  if (!selectedGameProperty || !me || !isMyTurn) {
-    showToast("Not your turn or invalid property", "error");
-    return;
-  }
-
-  const isUnmortgaging = selectedGameProperty.mortgaged;
-  const endpoint = isUnmortgaging ? "/game-properties/unmortgage" : "/game-properties/mortgage";
-  const actionVerb = isUnmortgaging ? "redeemed" : "mortgaged";
-
-  try {
-    const res = await apiClient.post<ApiResponse>(endpoint, {
-      game_id: currentGame.id,
-      user_id: me.user_id,
-      property_id: selectedGameProperty.property_id,
-    });
-
-    if (res.data?.success) {
-      showToast(`Property ${actionVerb}!`, "success");
-      await fetchUpdatedGame();
-      setSelectedProperty(null); // Assuming it's setSelectedProperty, or setSelectedGameProperty
-    } else {
-      showToast(res.data?.message || `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} failed`, "error");
+  const handleMortgageToggle = async () => {
+    if (!selectedGameProperty || !me || !isMyTurn) {
+      showToast("Not your turn or invalid property", "error");
+      return;
     }
-  } catch (err: any) {
-    const message = err?.response?.data?.message || `Failed to ${actionVerb} property`;
-    showToast(message, "error");
-  }
-};
+
+    const isUnmortgaging = selectedGameProperty.mortgaged;
+    const endpoint = isUnmortgaging ? "/game-properties/unmortgage" : "/game-properties/mortgage";
+    const actionVerb = isUnmortgaging ? "redeemed" : "mortgaged";
+
+    try {
+      const res = await apiClient.post<ApiResponse>(endpoint, {
+        game_id: currentGame.id,
+        user_id: me.user_id,
+        property_id: selectedGameProperty.property_id,
+      });
+
+      if (res.data?.success) {
+        showToast(`Property ${actionVerb}!`, "success");
+        await fetchUpdatedGame();
+        setSelectedProperty(null); // Assuming it's setSelectedProperty, or setSelectedGameProperty
+      } else {
+        showToast(res.data?.message || `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} failed`, "error");
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || `Failed to ${actionVerb} property`;
+      showToast(message, "error");
+    }
+  };
 
   const handleSellProperty = async () => {
     if (!selectedGameProperty || !me || !isMyTurn) {
@@ -1331,40 +1341,40 @@ const handleMortgageToggle = async () => {
       <div className="w-full max-w-2xl mx-auto px-4 mt-4">
         <PlayerStatus currentPlayer={currentPlayer} isAITurn={isAITurn} buyPrompted={buyPrompted} />
 
-   
 
-      {/* Board */}
-      <div className="flex-1 w-full flex items-center justify-center overflow-hidden mt-4">
-        <motion.div
-          animate={{ scale: boardScale }}
-          style={{ transformOrigin: boardTransformOrigin }}
-          transition={{ type: "spring", stiffness: 120, damping: 30 }}
-          className="origin-center"
-        >
-          <Board
-            properties={properties}
-            players={players}
-            currentGameProperties={currentGameProperties}
-            animatedPositions={animatedPositions}
-            currentPlayerId={currentPlayerId}
-            onPropertyClick={handlePropertyClick}
-          />
-        </motion.div>
-      </div>
 
-      <DiceAnimation
-        isRolling={isRolling && !(currentPlayer?.in_jail && currentPlayer.position === JAIL_POSITION)}
-        roll={roll}
-      />
+        {/* Board */}
+        <div className="flex-1 w-full flex items-center justify-center overflow-hidden mt-4">
+          <motion.div
+            animate={{ scale: boardScale }}
+            style={{ transformOrigin: boardTransformOrigin }}
+            transition={{ type: "spring", stiffness: 120, damping: 30 }}
+            className="origin-center"
+          >
+            <Board
+              properties={properties}
+              players={players}
+              currentGameProperties={currentGameProperties}
+              animatedPositions={animatedPositions}
+              currentPlayerId={currentPlayerId}
+              onPropertyClick={handlePropertyClick}
+            />
+          </motion.div>
+        </div>
 
-      {/* Roll Dice OR Declare Bankruptcy */}
-      {isMyTurn && !isRolling && !isRaisingFunds && !showInsolvencyModal && (
-        <>
-          {me && me.balance >= 0 && !roll && (
-     <div className="flex justify-center items-center w-full mb-8">
-  <button
-    onClick={() => ROLL_DICE(false)}
-    className="
+        <DiceAnimation
+          isRolling={isRolling && !(currentPlayer?.in_jail && currentPlayer.position === JAIL_POSITION)}
+          roll={roll}
+        />
+
+        {/* Roll Dice OR Declare Bankruptcy */}
+        {isMyTurn && !isRolling && !isRaisingFunds && !showInsolvencyModal && (
+          <>
+            {me && me.balance >= 0 && !roll && (
+              <div className="flex justify-center items-center w-full mb-8">
+                <button
+                  onClick={() => ROLL_DICE(false)}
+                  className="
       py-2.5 px-10
       bg-gradient-to-r from-cyan-500 to-cyan-600 
       hover:from-cyan-400 hover:to-cyan-500 
@@ -1375,31 +1385,31 @@ const handleMortgageToggle = async () => {
       hover:scale-105 hover:shadow-xl hover:shadow-cyan-400/60 
       active:scale-95
     "
-  >
-    Roll Dice
-  </button>
-</div>
-          )}
-
-          {me && me.balance < 0 && (
-            <div className="w-full max-w-md mx-auto mb-8 text-center">
-              <div className="text-red-400 text-xl font-bold mb-4 animate-pulse">
-                BANKRUPT — Balance: ${Math.abs(me.balance).toLocaleString()}
+                >
+                  Roll Dice
+                </button>
               </div>
-              <button
-                onClick={declareBankruptcy}
-                className="w-full py-4 px-8 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-800 text-white font-black text-2xl tracking-wide rounded-full shadow-2xl shadow-red-900/50 border-4 border-red-400 transition-all duration-300 hover:scale-105 active:scale-95 animate-pulse"
-              >
-                DECLARE BANKRUPTCY
-              </button>
-              <p className="text-gray-400 text-sm mt-4">
-                You cannot continue with a negative balance.
-              </p>
-            </div>
-          )}
-        </>
-      )}
-     {me && (
+            )}
+
+            {me && me.balance < 0 && (
+              <div className="w-full max-w-md mx-auto mb-8 text-center">
+                <div className="text-red-400 text-xl font-bold mb-4 animate-pulse">
+                  BANKRUPT — Balance: ${Math.abs(me.balance).toLocaleString()}
+                </div>
+                <button
+                  onClick={declareBankruptcy}
+                  className="w-full py-4 px-8 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-800 text-white font-black text-2xl tracking-wide rounded-full shadow-2xl shadow-red-900/50 border-4 border-red-400 transition-all duration-300 hover:scale-105 active:scale-95 animate-pulse"
+                >
+                  DECLARE BANKRUPTCY
+                </button>
+                <p className="text-gray-400 text-sm mt-4">
+                  You cannot continue with a negative balance.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+        {me && (
           <div className="mt-4 flex items-center justify-start gap-4 rounded-xl px-5 py-3 border border-white/20">
             <span className="text-sm opacity-80">Bal:</span>
             {(() => {
