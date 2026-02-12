@@ -6,7 +6,7 @@ import User from "../models/User.js";
 const agentController = {
   async create(req, res) {
     try {
-      const { name, strategy, riskProfile, config, ownerAddress } = req.body;
+      const { name, strategy, riskProfile, config, ownerAddress, registerOnChain = true } = req.body;
 
       if (!ownerAddress) {
         return res.status(400).json({
@@ -15,7 +15,37 @@ const agentController = {
         });
       }
 
-      // Generate unique AI address
+      // If registerOnChain is true, use wallet service for full on-chain registration
+      if (registerOnChain) {
+        const { createAgentWithWallet } = await import('../services/agentWalletService.js');
+
+        const agent = await createAgentWithWallet({
+          name,
+          owner_address: ownerAddress,
+          strategy: strategy || 'balanced',
+          risk_profile: riskProfile || 'balanced',
+          config: config || {}
+        });
+
+        // Create corresponding User entry for game participation
+        await User.create({
+          username: name,
+          address: agent.wallet_address, // Use blockchain wallet address
+          chain: 'MONAD_TESTNET'
+        });
+
+        return res.status(201).json({
+          success: true,
+          message: "Agent created successfully with on-chain registration",
+          data: {
+            ...agent,
+            // Don't expose encrypted private key in response
+            private_key_encrypted: undefined
+          }
+        });
+      }
+
+      // Legacy creation without wallet (for backwards compatibility)
       const timestamp = Date.now();
       const address = `0xAI${timestamp.toString(16).padStart(40, '0')}`;
 
@@ -37,7 +67,7 @@ const agentController = {
 
       res.status(201).json({
         success: true,
-        message: "Agent created successfully",
+        message: "Agent created successfully (legacy mode - no wallet)",
         data: agent
       });
     } catch (error) {
@@ -48,14 +78,14 @@ const agentController = {
 
   async createWithAIModel(req, res) {
     try {
-      const { 
-        name, 
-        modelName, 
-        apiKey, 
+      const {
+        name,
+        modelName,
+        apiKey,
         initialAmount,
         strategy = 'balanced',
         riskProfile = 'balanced',
-        ownerAddress 
+        ownerAddress
       } = req.body;
 
       // Validate required fields
@@ -75,12 +105,7 @@ const agentController = {
         });
       }
 
-      // Generate unique AI address
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const address = `0xAI${timestamp.toString(16).padStart(32, '0')}${randomSuffix}`;
-
-      // Create agent configuration
+      // Create agent configuration (needed for both paths)
       const agentConfig = {
         ai_model: modelName,
         api_key: apiKey, // Note: In production, encrypt this
@@ -91,21 +116,42 @@ const agentController = {
         created_with: 'ai_model_config'
       };
 
-      const agent = await Agent.create({
-        name,
-        address,
-        owner_address: ownerAddress,
-        strategy,
-        risk_profile: riskProfile,
-        config: JSON.stringify(agentConfig)
-      });
+      const registerOnChain = req.body.registerOnChain !== false; // Default to true
+      let agent;
+
+      // If registerOnChain is true, use wallet service
+      if (registerOnChain) {
+        const { createAgentWithWallet } = await import('../services/agentWalletService.js');
+
+        agent = await createAgentWithWallet({
+          name,
+          owner_address: ownerAddress,
+          strategy,
+          risk_profile: riskProfile,
+          config: agentConfig
+        });
+      } else {
+        // Legacy creation without wallet
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const address = `0xAI${timestamp.toString(16).padStart(32, '0')}${randomSuffix}`;
+
+        agent = await Agent.create({
+          name,
+          address,
+          owner_address: ownerAddress,
+          strategy,
+          risk_profile: riskProfile,
+          config: JSON.stringify(agentConfig)
+        });
+      }
 
       // Create corresponding User entry for game participation
       const uniqueUsername = `${name}_${Date.now()}`;
       await User.create({
         username: uniqueUsername,
-        address,
-        chain: 'AI_NET'
+        address: agent.wallet_address || agent.address,
+        chain: registerOnChain ? 'MONAD_TESTNET' : 'AI_NET'
       });
 
       // If initial amount > 0, create initial reward record
@@ -135,16 +181,20 @@ const agentController = {
 
       res.status(201).json({
         success: true,
-        message: "Agent created successfully with AI model configuration",
+        message: registerOnChain
+          ? "Agent created with AI model and on-chain registration"
+          : "Agent created with AI model (legacy mode)",
         data: {
           ...agent,
-          config: agentConfig // Return config for confirmation (without sensitive data in production)
+          config: agentConfig,
+          // Don't expose sensitive data
+          private_key_encrypted: undefined
         }
       });
     } catch (error) {
       console.error("Error creating agent with AI model:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "Failed to create agent with AI model",
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
@@ -154,7 +204,7 @@ const agentController = {
   async getAll(req, res) {
     try {
       const { limit = 50, offset = 0, sortBy = 'total_revenue' } = req.query;
-      
+
       const agents = await Agent.findAll({
         limit: parseInt(limit),
         offset: parseInt(offset),
@@ -175,7 +225,7 @@ const agentController = {
   async getByOwner(req, res) {
     try {
       const { ownerAddress } = req.params;
-      
+
       const agents = await Agent.findByOwner(ownerAddress);
 
       res.json({
@@ -192,7 +242,7 @@ const agentController = {
   async getById(req, res) {
     try {
       const { id } = req.params;
-      
+
       const agent = await Agent.findById(id);
       if (!agent) {
         return res.status(404).json({
@@ -235,7 +285,7 @@ const agentController = {
       if (typeof isActive === 'boolean') updateData.is_active = isActive;
 
       const agent = await Agent.update(id, updateData);
-      
+
       res.json({
         success: true,
         message: "Agent updated successfully",
@@ -253,7 +303,7 @@ const agentController = {
       const { wins = 0, matches = 0, revenue = 0 } = req.body;
 
       const agent = await Agent.updateStats(id, { wins, matches, revenue });
-      
+
       res.json({
         success: true,
         message: "Agent stats updated successfully",
@@ -268,9 +318,9 @@ const agentController = {
   async delete(req, res) {
     try {
       const { id } = req.params;
-      
+
       await Agent.delete(id);
-      
+
       res.json({
         success: true,
         message: "Agent deleted successfully"
@@ -285,15 +335,15 @@ const agentController = {
   async getLeaderboard(req, res) {
     try {
       const { limit = 50, offset = 0, metric = 'total_revenue' } = req.query;
-      
+
       // Validate parameters
       const validMetrics = ['total_revenue', 'total_wins', 'win_rate', 'current_streak'];
       const sortBy = validMetrics.includes(metric) ? metric : 'total_revenue';
       const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100); // Between 1-100
       const parsedOffset = Math.max(parseInt(offset) || 0, 0); // Minimum 0
-      
+
       console.log(`Fetching leaderboard with metric: ${sortBy}, limit: ${parsedLimit}, offset: ${parsedOffset}`);
-      
+
       const leaderboard = await Agent.getLeaderboard({
         limit: parsedLimit,
         offset: parsedOffset,
@@ -313,8 +363,8 @@ const agentController = {
       });
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "Failed to fetch leaderboard",
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
@@ -324,7 +374,7 @@ const agentController = {
   async getTopPerformers(req, res) {
     try {
       const { limit = 10 } = req.query;
-      
+
       const topPerformers = await AgentGameParticipation.getTopPerformers(parseInt(limit));
 
       res.json({
@@ -342,7 +392,7 @@ const agentController = {
   async updateWinRates(req, res) {
     try {
       const success = await Agent.updateAllWinRates();
-      
+
       if (success) {
         res.json({
           success: true,
