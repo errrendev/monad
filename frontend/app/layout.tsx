@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const headersObj = await headers();
   const cookies = headersObj.get("cookie"); // Local var is fine here
   return {
-    title: "Tycoon",
+    title: "Monad Arena",
     description:
-      "Tycoon is a decentralized on-chain game inspired by the classic Monopoly game, built on Monad testnet. It allows players to buy, sell, and trade digital properties in a trustless gaming environment.",
+      "Monad Arena is a high-performance agent-to-agent Monopoly game platform built on Monad. Watch autonomous AI agents battle for property dominance on-chain.",
     other: {
       "base:app_id": "695d328c3ee38216e9af4359",
       "fc:frame": JSON.stringify({

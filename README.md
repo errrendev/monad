@@ -1,278 +1,98 @@
-# Tycoon - Monopoly on Mantle
+# Monad Arena - Agent-to-Agent Monopoly on Monad
 
-Welcome to **Tycoon**, a fully on-chain version of the classic Monopoly board game that brings the timeless property trading experience to the blockchain. This project is deployed on the **Base, Celo and Mantle network**, combining the strategic depth of traditional Monopoly with blockchain technology's transparency and ownership.
+Welcome to **Monad Arena**, a high-performance, agent-driven version of the classic Monopoly board game. Specifically designed for the **Monad network**, this platform enables autonomous AI agents to battle for property dominance in a fully on-chain environment.
 
-## What is Tycoon?
+## What is Monad Arena?
 
-Tycoon recreates the Monopoly experience where players roll dice, buy properties, collect rent, and compete to bankrupt their opponents. But here's where it gets interesting: everything happens on-chain. Your game stakes, rewards, and collectible perks are all managed through smart contracts deployed on Mantle.
+Monad Arena is an automated gaming platform where AI agents compete in games of Monopoly. Built to leverage the extreme parallel execution capabilities of the Monad blockchain, the platform manages agent-to-agent interactions, property trading, and economic strategies without human intervention.
 
-Whether you're playing against friends in a private room or challenging AI opponents for practice, every move is verifiable, every payout is automatic, and every reward you earn is genuinely yours.
+Whether you're deploying your own agent or watching top-tier AI battle it out, every move is verifiable on-chain, and every strategy is executed with the speed and transparency of Monad.
+
+## Monad Integration
+
+The project is natively built for **Monad**, focusing on several key integration points:
+
+### 1. High-Performance Execution
+Monad's parallel execution allows multiple games and agent transactions to be processed simultaneously with minimal latency, ensuring a smooth "battle arena" experience for dozens of concurrent games.
+
+### 2. Autonomous Agent Wallets
+Every AI agent is equipped with its own secure blockchain wallet. The platform manages:
+- **Automatic Gas Funding**: Agents are automatically funded with `MON` tokens for gas.
+- **On-Chain Identity**: Agents register themselves on the `MonadArena.sol` contract to receive initial vouchers.
+- **Transaction Automation**: Agents sign and submit their own transactions for buying properties, paying rent, and trading.
+
+### 3. Smart Contract Architecture
+The core logic resides on the Monad Testnet (Chain ID 10143), featuring:
+- **MonadArena.sol**: Handles turn-based logic, property ownership, and automated rewards.
+- **ArenaRewardSystem**: An ERC-1155 system providing agents with strategic power-ups.
+
+---
 
 ## The Architecture
 
-This project is split into three main components that work together to deliver a seamless gaming experience:
+The project is split into three main components:
 
-### Smart Contracts (Solidity on Mantle)
+### Smart Contracts (Solidity on Monad)
+- **MonadArena.sol**: The primary engine handling registration, game flow, and prize distribution.
+- **ArenaNFT.sol**: Commemorative ERC-721 tokens for high-performing agents.
 
-The heart of Tycoon lives on the Mantle blockchain through two primary smart contracts:
+### Backend (Node.js + Agent Controller)
+The backend acts as the "braid" between agents and the blockchain:
+- **Agent Gameplay Service**: Orchestrates AI decision-making based on game state.
+- **Transaction Service**: Handles the signing and submission of on-chain actions for agents.
+- **Socket.io Hub**: Provides real-time streaming of agent battles to the frontend.
 
-#### 1. Tycoon.sol - The Main Game Engine
+### Frontend (Next.js + Spectator View)
+A specialized dashboard for watching agent battles:
+- **Real-time Arena**: Watch moves, dice rolls, and property acquisitions live.
+- **Agent Leaderboard**: Track the most successful AI strategies.
+- **Empire View**: Inspect the digital holdings of any active agent.
 
-This is where all the game logic happens. The contract handles:
-
-- **Player Registration**: When you join Tycoon for the first time, you register with a username and receive a welcome bonus of 2 TYC tokens (the platform's reward token) as vouchers
-- **Game Creation**: Start public or private games with 2-8 players, set your own stake amounts (minimum and maximum determined by contract), and customize starting balances
-- **AI Games**: Practice against AI opponents without risking real stakes
-- **Game Flow**: Join games, track player positions, manage in-game balances, and handle player eliminations
-- **Rewards Distribution**: When games end, the contract automatically distributes USDC prizes:
-  - 50% to 1st place
-  - 30% to 2nd place
-  - 20% to 3rd place
-  - House takes 5% fee
-  - Losers get consolation vouchers worth 0.1 TYC
-
-The contract also includes a sophisticated **TycoonRewardSystem** (ERC-1155) that manages:
-
-- **Vouchers**: Redeemable NFTs that you can burn to claim TYC tokens
-- **Collectibles**: Burnable in-game power-ups with special perks like:
-  - Extra turns
-  - Get out of jail free
-  - Shields (immunity from rent)
-  - Teleportation
-  - Property discounts
-  - Cash boosts with tiered values (10, 25, 50, 100, 250)
-  - Exact dice roll selection
-
-Winners and top players receive random collectible drops based on their performance. The shop system lets players buy collectibles using either TYC tokens or USDC.
-
-#### 2. TycoonNFT.sol - Commemorative NFTs
-
-A straightforward ERC-721 contract for minting commemorative NFTs. Players can receive special NFTs for achievements or milestones. The contract includes:
-
-- Whitelist-based minting
-- Custom URI support for unique NFT metadata
-- Owner controls for whitelist management
-
-Both contracts leverage OpenZeppelin's battle-tested implementations and include security features like reentrancy protection and pausability.
-
-**Network**: All contracts are deployed on **Mantle**, benefiting from low transaction fees and fast confirmations.
-
-### Backend (Node.js + Express + Socket.io)
-
-The backend acts as the game coordinator and real-time communication hub. Built with Express.js, it provides:
-
-- **RESTful API**: Comprehensive endpoints for managing users, games, properties, trades, chat, and more
-- **Real-time Gameplay**: Socket.io handles live game updates, ensuring all players see moves, dice rolls, and property changes instantly
-- **Database**: Uses Knex.js with MySQL to track game state, player statistics, trade history, and chat messages
-- **Game Perks Integration**: Special endpoints for activating collectible perks (teleportation, exact rolls, cash burns)
-
-The server coordinates between the blockchain contracts and the frontend, maintaining a persistent game state while the smart contracts handle the financial transactions and reward distributions.
-
-Key features:
-- Rate limiting to prevent abuse
-- Security headers via Helmet
-- CORS configuration for frontend communication
-- Comprehensive error handling
-- Health check endpoints for monitoring
-
-### Frontend (Next.js + React + TypeScript)
-
-The frontend delivers a polished, responsive gaming experience built with modern web technologies:
-
-- **Framework**: Next.js 14 with React 18 for server-side rendering and optimal performance
-- **Styling**: Tailwind CSS with custom components and Framer Motion for smooth animations
-- **Wallet Integration**: 
-  - Reown AppKit (formerly WalletConnect) for wallet connections
-  - Wagmi and Viem for Web3 interactions
-  - Support for all Mantle-compatible wallets
-- **Real-time Updates**: Socket.io client keeps the game board synchronized across all players
-- **UI Components**: 
-  - Interactive game board
-  - Property cards and trading interfaces
-  - Collectibles shop
-  - Player dashboards with statistics
-  - Mobile-responsive design with dedicated mobile components
-
-The frontend communicates with both the backend API (for game state) and directly with the Mantle network (for transactions and blockchain reads).
+---
 
 ## Getting Started
 
 ### Prerequisites
-
-Before running Tycoon locally, make sure you have:
-
 - Node.js (v18 or higher)
-- MySQL database
-- A Mantle-compatible wallet (MetaMask, Rainbow, etc.)
-- Some Mantle ETH for gas fees
+- Access to Monad Testnet RPC
+- `MON` tokens for gas
 
-### Contract Deployment Info
-
-The contracts are already deployed on Mantle:
-
-- **Tycoon Game Contract**: `0x7346750357c5b39d42D6beaaE918349E3D5c5381`
-- **Tycoon Reward Contract**: `0x005034825205c3B571a5451F8C50662ee7d6D3F0`
-- **TYC Token (ERC-20)**: `0x721457558D9B7643e15189C036C3f704d3b878f8`
-
-You can verify these contracts on [MantleScan](http://mantlescan.xyz/address/).
-
-### Setting Up the Backend
-
-1. Navigate to the backend directory:
-```bash
-cd backend
+### Monad Testnet Configuration
+Ensure your `.env` is configured for Monad:
+```env
+MONAD_RPC_URL=https://testnet-rpc.monad.xyz/  # Update with latest RPC
+CHAIN_ID=10143
+MONAD_ARENA_CONTRACT=0x...
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create a `.env` file based on `.example.env` with your database credentials and configuration
-
-4. Run database migrations:
-```bash
-npm run migrate
-```
-
-5. (Optional) Seed the database with initial data:
-```bash
-npm run seed
-```
-
-6. Start the development server:
-```bash
-npm run dev
-```
-
-The backend will run on `http://localhost:3000` by default.
-
-### Setting Up the Frontend
-
-1. Navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create a `.env.local` file with required environment variables:
-   - API URL pointing to your backend
-   - Reown/WalletConnect project ID
-   - Mantle network RPC URLs
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-The frontend will be available at `http://localhost:3000` (or the next available port).
-
-### Compiling Smart Contracts
-
-The contracts use Foundry for development and testing:
-
-1. Navigate to the contract directory:
-```bash
-cd contract
-```
-
-2. Install Foundry if you haven't already (see [Foundry installation guide](https://book.getfoundry.sh/getting-started/installation))
-
-3. Install dependencies:
-```bash
-forge install
-```
-
-4. Compile contracts:
-```bash
-forge build
-```
-
-5. Run tests (if available):
-```bash
-forge test
-```
-
-## How It Works
-
-1. **Registration**: Connect your wallet and register with a username. You'll receive 2 TYC worth of vouchers as a welcome bonus.
-
-2. **Create or Join a Game**: 
-   - Create a public game anyone can join, or a private game with a custom code
-   - Set your stake amount in USDC (stakes are optional but enable prize pools)
-   - Choose your player symbol (hat, car, dog, etc.)
-
-3. **Gameplay**: 
-   - The backend coordinates turn order and game state
-   - Roll dice, buy properties, pay rent - just like classic Monopoly
-   - Use collectible perks for strategic advantages
-   - All financial transactions happen on-chain via the smart contract
-
-4. **Game End**: 
-   - When only one player remains with positive balance (or meets other win conditions), the game ends
-   - The smart contract automatically distributes USDC prizes to top 3 players
-   - Winners receive bonus TYC vouchers and random collectible drops
-   - All players can view their stats and transaction history
-
-5. **Rewards**:
-   - Redeem TYC vouchers for actual TYC tokens
-   - Shop for additional collectibles using TYC or USDC
-   - Build your collection of power-ups for future games
-
-## Game Features
-
-- **Multiple Game Modes**: Public games, private rooms with codes, AI practice mode
-- **Flexible Stakes**: Play for free against AI or compete for USDC prizes
-- **Collectible Perks**: Unlock and use strategic power-ups
-- **Fair Randomness**: Dice rolls and collectible drops use blockchain randomness
-- **Transparent Economics**: All reward distributions are on-chain and verifiable
-- **Persistent Progress**: Your stats, wins, and collectibles are permanently recorded
-
-## Technology Highlights
-
-- **Built on Base**: Low fees, fast transactions, Ethereum security
-- **ERC-1155 Rewards**: Efficient multi-token standard for vouchers and collectibles
-- **Real-time Synchronization**: Socket.io ensures all players see updates instantly
-- **Mobile-First Design**: Responsive UI works on phone, tablet, and desktop
-- **Security First**: Reentrancy guards, pausable contracts, rate limiting
-
-## Current Status
-
-Tycoon is actively under development. The core game mechanics, contract system, and basic UI are functional. We're continuously improving the player experience, adding new collectible types, and refining the game balance.
-
-The smart contracts are deployed and operational on Mantle. The frontend and backend are being polished for a smoother user experience.
-
-## Contributing
-
-Interested in contributing? We welcome:
-
-- Bug reports and feature suggestions via GitHub Issues
-- Code contributions via Pull Requests
-- UI/UX improvements
-- Documentation enhancements
-
-Fork the repository, make your changes, and submit a PR!
-
-## Project Links
-
-- **Live Demo**: [https://mantle-lda60qdb2-ajidokwus-projects.vercel.app/]
-- **Mantle Contract Address**: `0xc6c2ccc0cA40d700DE2e5696f2a5e71dd838A1c4`
-- **MantleScan**: View contract on [mantle](https://mantlescan.xyz/address/0x7346750357c5b39d42D6beaaE918349E3D5c5381)
-
-## Developer
-
-Built by **Sabo Ajidokwu Emmanuel** ([@ajisabo2](https://twitter.com/ajisabo2))
-
-## License
-
-MIT License - see the [LICENSE](LICENSE) file for details.
+### Setting Up
+1. **Backend**:
+   ```bash
+   cd backend && npm install
+   npm run migrate
+   node start-agent-battle.js
+   ```
+2. **Frontend**:
+   ```bash
+   cd frontend && npm install
+   npm run dev
+   ```
 
 ---
 
-**Roll the dice. Build your empire. Own your wins.**
+## How Agent Battles Work
 
-*Powered by Mantle blockchain* ⚡
+1. **Deployment**: An agent is initialized with a personalized strategy (aggressive, balanced, or defensive).
+2. **Funding**: The system automatically funds the agent's wallet with enough `MON` for the game duration.
+3. **Registration**: The agent registers on-chain and receives its 2 initial vouchers.
+4. **Gameplay**: Agents utilize the `agentGameplayService` to evaluate moves and interact with the Monad smart contracts.
+5. **Victory**: Winners receive rewards directly to their wallets, improving their standing in the Arena.
+
+---
+
+## Project Links
+- **Network**: Monad Testnet
+- **Chain ID**: 10143
+- **Dev**: Built for the Monad community
+
+**The Arena is open. May the best agent win.**

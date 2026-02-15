@@ -160,7 +160,7 @@ const HeroSection: React.FC = () => {
       setLocalUsername(finalUsername);
 
       toast.update(toastId, {
-        render: "Welcome to Tycoon!",
+        render: "Welcome to Monad Arena!",
         type: "success",
         isLoading: false,
         autoClose: 4000,
@@ -233,7 +233,7 @@ const HeroSection: React.FC = () => {
 
       <div className="w-full h-auto absolute top-0 left-0 flex items-center justify-center">
         <h1 className="text-center uppercase font-kronaOne font-normal text-transparent big-hero-text w-full text-[40px] sm:text-[40px] md:text-[80px] lg:text-[135px] relative before:absolute before:content-[''] before:w-full before:h-full before:bg-gradient-to-b before:from-transparent lg:before:via-[#010F10]/80 before:to-[#010F10] before:top-0 before:left-0 before:z-1">
-          TYCOON
+          MONAD ARENA
         </h1>
       </div>
 
@@ -277,7 +277,7 @@ const HeroSection: React.FC = () => {
         </div>
 
         <h1 className="block-text font-[900] font-orbitron lg:text-[116px] md:text-[98px] text-[54px] lg:leading-[120px] md:leading-[100px] leading-[60px] tracking-[-0.02em] uppercase text-[#17ffff] relative">
-          TYCOON
+          MONAD ARENA
           <span className="absolute top-0 left-[69%] text-[#0FF0FC] font-dmSans font-[700] md:text-[27px] text-[18px] rotate-12 animate-pulse">
             ?
           </span>
@@ -303,9 +303,9 @@ const HeroSection: React.FC = () => {
             className="font-orbitron lg:text-[40px] md:text-[30px] text-[20px] font-[700] text-[#F0F7F7] text-center block"
           />
           <p className="font-dmSans font-[400] md:text-[18px] text-[14px] text-[#F0F7F7] mt-4">
-            Step into Tycoon — the Web3 twist on the classic game of strategy,
+            Step into Monad Arena — the Web3 twist on the classic game of strategy,
             ownership, and fortune. Experience autonomous AI agents competing
-            on-chain, collect tokens, and witness the ultimate blockchain tycoon simulation.
+            on-chain, collect tokens, and witness the ultimate blockchain arena simulation.
           </p>
         </div>
 
@@ -317,7 +317,7 @@ const HeroSection: React.FC = () => {
                 type="text"
                 value={inputUsername}
                 onChange={(e) => setInputUsername(e.target.value)}
-                placeholder="Choose your tycoon name"
+                placeholder="Choose your arena name"
                 className="w-[80%] md:w-[260px] h-[45px] bg-[#0E1415] rounded-[12px] border-[1px] border-[#003B3E] outline-none px-3 text-[#17ffff] font-orbitron font-[400] text-[16px] text-center placeholder:text-[#455A64] placeholder:font-dmSans"
               />
             </>

@@ -147,7 +147,7 @@ const HeroSectionMobile: React.FC = () => {
       setLocalUsername(finalUsername);
 
       toast.update(toastId, {
-        render: "Welcome to Tycoon!",
+        render: "Welcome to Monad Arena!",
         type: "success",
         isLoading: false,
         autoClose: 4000,
@@ -216,7 +216,7 @@ const HeroSectionMobile: React.FC = () => {
       <div className="w-full relative -z-0 flex flex-col items-center px-5 pt-16 pb-10 min-h-screen">
         {/* Title */}
         <h1 className="font-orbitron font-black text-6xl sm:text-7xl leading-none uppercase text-[#17ffff] tracking-[-0.02em] text-center mt-10">
-          TYCOON
+          MONAD ARENA
           <span className="absolute -top-1 -right-6 text-[#0FF0FC] font-dmSans font-bold text-3xl rotate-12 animate-pulse">
             ?
           </span>
@@ -269,7 +269,7 @@ const HeroSectionMobile: React.FC = () => {
               type="text"
               value={inputUsername}
               onChange={(e) => setInputUsername(e.target.value)}
-              placeholder="Choose your tycoon name"
+              placeholder="Choose your arena name"
               className="w-full h-12 bg-[#0E1415]/80 backdrop-blur-sm rounded-xl border border-[#004B4F] outline-none px-5 text-[#17ffff] font-orbitron text-base text-center placeholder:text-[#6B8A8F] placeholder:font-dmSans"
             />
           )}
